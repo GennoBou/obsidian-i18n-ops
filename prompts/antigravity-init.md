@@ -84,17 +84,21 @@
 
 ---
 
-## Step 6: バリデーション & ビルド検証
+---
 
-1. 依存パッケージをインストール:
+## Step 6: バージョニング (CalVer) & バリデーション & ビルド検証
+
+1. **日付ベースバージョン (CalVer) の設定**:
+   - `manifest.json` および `package.json` の `version` を当日日付形式 `YY.M.D`（例: `26.8.16`）に更新します。
+2. **依存パッケージのインストール**:
    ```bash
-   npm install
+   npm install # または pnpm install
    ```
-2. i18n整合性チェックを実行:
+3. **i18n整合性チェック**:
    ```bash
    npm run check-i18n
    ```
-3. TypeScriptビルドおよびテストを実行:
+4. **TypeScriptビルド & テスト**:
    ```bash
    npm run build
    npm test
@@ -102,7 +106,10 @@
 
 ---
 
-## Step 7: 定期追従CIワークフローの配置
+## Step 7: 定期追従 & BRATリリースCIワークフローの配置
 
 1. `templates/upstream-sync.yml` を `.github/workflows/upstream-sync.yml` にコピー。
-2. 変更をコミットし、フォーク先リポジトリの `main`（または `master`）にプッシュ。
+2. `templates/release.yml` を `.github/workflows/release.yml` にコピー。
+3. 変更をコミットし、フォーク先リポジトリの `main`（または `master`）にプッシュ。
+4. Gitタグ（例: `26.8.16`）を作成してプッシュすることで、GitHub Actions が BRAT 用のアセット（`main.js`, `manifest.json`, `styles.css`）を含む GitHub Release を自動発行します。
+
