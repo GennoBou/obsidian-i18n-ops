@@ -7,10 +7,38 @@
 ## 🎯 目的と特徴
 
 - **完全な汎用基盤**: 特定のプラグインに依存せず、任意のObsidianプラグインに適用可能。
+- **3層ブランチ戦略**:
+  - `i18n-core`: 言語中立なi18n化層（将来upstreamへのPR還元が可能）
+  - `l10n-ja`: 日本語辞書リソース層（他言語の追加も容易）
+  - `main` / `master`: BRAT配布用設定（manifest改名、CalVerリリースCI）
+- **プラグイン衝突防止（manifest改名）**: `id: "<id>-i18n"` と `name: "<Name> (i18n)"` を設定し、Obsidian上でオリジナル版と共存・区別可能。
 - **原文キー方式（Raw Key Approach）**: `t("Original English Text")` を採用し、Zero-dependencyの薄いi18nアダプター（`templates/i18n.ts`）で動作。
-- **決定論的CIチェック**: `scripts/check-i18n.ts` により、キー過不足や `{placeholder}` の整合性を自動検証。
-- **自動追従パイプライン**: upstreamの更新を検知し、AI（Google Jules / Antigravity）による差分翻訳とGitHub Actionsの自動検証を連携。
-- **BRAT対応**: フォーク版プラグインは個人用・コミュニティ検証用として **Obsidian42 - BRAT** 経由で導入可能。
+- **決定論的CIチェック**: `scripts/check-i18n.mjs` により、キー過不足や `{placeholder}` の整合性を自動検証。
+- **CalVer日付バージョン & BRAT対応**: 日付バージョン（`YY.M.D` 形式）を採用し、GitHub Releases経由で **Obsidian42 - BRAT** からワンクリック導入・更新可能。
+
+---
+
+## 🌳 3層ブランチアーキテクチャ
+
+```mermaid
+gitGraph
+   commit id: "upstream/master (オリジナル)"
+   branch i18n-core
+   checkout i18n-core
+   commit id: "t()化 + en.json (言語中立)"
+   branch l10n-ja
+   checkout l10n-ja
+   commit id: "ja.json 追加 (日本語化)"
+   branch master
+   checkout master
+   commit id: "manifest改名 + BRATリリース設定"
+   checkout i18n-core
+   commit id: "upstream更新取り込み"
+   checkout l10n-ja
+   merge i18n-core id: "新規キーのja翻訳"
+   checkout master
+   merge l10n-ja id: "CalVer (YY.M.D) 自動リリース"
+```
 
 ---
 
@@ -25,9 +53,10 @@ obsidian-i18n-ops/
 │   └── I18N.md                     # スタイルガイド & 翻訳ルール
 ├── templates/                      # プラグイン配置用テンプレート
 │   ├── i18n.ts                     # 軽量i18nアダプター（Zero-dependency）
+│   ├── release.yml                 # BRAT用自動リリースワークフロー
 │   └── upstream-sync.yml           # プラグイン用CI設定テンプレート
 ├── scripts/                        # 検証スクリプト
-│   └── check-i18n.ts               # 辞書・プレースホルダー検証スクリプト
+│   └── check-i18n.mjs              # 辞書・プレースホルダー検証スクリプト
 ├── prompts/                        # AI指示書
 │   ├── antigravity-init.md         # 初回全コードi18n化用指示書（Antigravity用）
 │   └── jules-sync.md               # 日々の差分同期用指示書（Google Jules用）
@@ -38,24 +67,4 @@ obsidian-i18n-ops/
 
 ## 🚀 プラグインへの適用手順
 
-任意の英語プラグインを多言語化する際は、[prompts/antigravity-init.md](prompts/antigravity-init.md) を参照して以下の手順を実行します。
-
-1. **フォーク作成 & クローン**:
-   ```bash
-   gh repo fork <UPSTREAM_REPO_URL> --clone
-   ```
-2. **README.md の更新**:
-   冒頭にi18nフォーク版であることおよびBRAT利用案内を記載。
-3. **i18n基盤の導入**:
-   - `templates/i18n.ts` をプラグインの `src/i18n.ts` に配置。
-   - `scripts/check-i18n.ts` を `scripts/check-i18n.ts` に配置。
-4. **UI文言の `t()` 化 & 辞書生成**:
-   - 設定タブ、モーダル、コマンド、通知メッセージ等を `t("...")` でラップ。
-   - `src/locales/en.json` および `src/locales/ja.json` を生成。
-5. **検証 & ビルド**:
-   ```bash
-   npm run check-i18n
-   npm run build
-   ```
-6. **定期追従CIの設定**:
-   - `templates/upstream-sync.yml` を `.github/workflows/upstream-sync.yml` に配置してプッシュ。
+任意の英語プラグインを多言語化する際は、[prompts/antigravity-init.md](prompts/antigravity-init.md) を参照して実行します。

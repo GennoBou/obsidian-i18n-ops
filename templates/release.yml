@@ -23,15 +23,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm (if used)
+        if: hashFiles('pnpm-lock.yaml') != ''
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Dependencies
         run: |
           if [ -f "pnpm-lock.yaml" ]; then
-            npm install -g pnpm
             pnpm install
           elif [ -f "package-lock.json" ]; then
             npm ci || npm install
@@ -46,7 +49,12 @@ jobs:
           fi
 
       - name: Build Plugin
-        run: npm run build
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            pnpm run build
+          else
+            npm run build
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
