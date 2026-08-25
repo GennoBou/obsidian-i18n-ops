@@ -57,6 +57,9 @@
    npm run check-i18n
    npm run build
    npm test
+   # プラグインに定義されている場合
+   npm run lint || pnpm lint
+   npm run check
    ```
 4. 変更をコミットしてプッシュ:
    ```bash

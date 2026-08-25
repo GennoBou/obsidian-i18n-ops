@@ -42,6 +42,18 @@ gitGraph
 
 ---
 
+## ⚙️ GitHub Actions ワークフローの3分類運用設計
+
+フォーク先リポジトリにおいて upstream（本家）のワークフローとの衝突を防ぎ、更新追従時に壊れないようにするため、ワークフローを以下の3つに明確に分類して運用します。
+
+| 分類 | ワークフロー例 | フォーク先での扱い | 理由 |
+| :--- | :--- | :---: | :--- |
+| **① そのまま利用 (Active)** | `ci.yml`, `test.yml`, `codeql.yml` | **有効のまま維持** | upstream のコード更新や自前の差分取り込み時、ビルド・テスト・Lint の品質を自動検証するために活用。 |
+| **② 無効化＆代理作成 (Replace)** | 公式コミュニティ公開用 `release.yml` | **無効化 ＋ BRAT用作成** | 本家のリリースフローを `gh workflow disable` で止め、代理として CalVer 日付リリースの [`templates/release.yml`](templates/release.yml) を配置。 |
+| **③ 完全無効化 (Disable & Ignore)** | `release-prepare.yml`, `docs.yml`, `stale.yml` | **無効化（コード改変なし）** | 本家作者専用の GitHub App / 権限 / Bot に依存するワークフロー。コードを削除・変更せず `gh workflow disable` で停止し、upstream 更新時のマージコンフリクトを原理的に防止。 |
+
+---
+
 ## 📁 ディレクトリ構成
 
 ```

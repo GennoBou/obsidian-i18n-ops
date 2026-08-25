@@ -126,9 +126,19 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    
    ---
    ```
-5. **CIワークフローの配置**:
+5. **CIワークフローの配置 & upstream ワークフローの3分類整理**:
    - `templates/upstream-sync.yml` を `.github/workflows/upstream-sync.yml` に配置。
    - `templates/release.yml` を `.github/workflows/release.yml` に配置。
+   - **ワークフローの3分類整理ルール**:
+     1. **① そのまま利用する (Active / As-is)**:
+        - 単体テスト・ビルド・型チェック・Lint (`ci.yml`, `test.yml`, `codeql.yml` 等)
+        - フォーク先でもコード品質を担保するため有効のまま維持。
+     2. **② 無効化し、代理の workflow を作成・使用する (Disable & Replace)**:
+        - 本家の公式リリース・タグ付けワークフロー（公式プラグインディレクトリ公開用や本家トークン依存のもの）
+        - `gh workflow disable <workflow-name>` で無効化し、BRAT用 `release.yml` を代理で使用。
+     3. **③ 無効化する（まったく機能を利用しない） (Disable & Ignore)**:
+        - 本家専用のリリース準備ボット、Issue/PRトリアージ、ドキュメントデプロイ (`release-prepare.yml`, `release-trigger.yml`, `docs.yml`, `stale.yml` 等)
+        - フォーク先では不要かつ失敗の原因となるため、**コードを変更・削除せず** `gh workflow disable <workflow-name>` で無効化。
 
 ---
 
@@ -138,10 +148,14 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    ```bash
    npm run check-i18n
    ```
-2. **ビルド & テスト**:
+2. **ビルド & 既存Lint/型チェック/テスト実行**:
+   - `npm run check-i18n` のほか、プラグイン既存の検証コマンドを実行し、新規追加スクリプトや差分がルール違反していないことを確認:
    ```bash
    npm run build
    npm test
+   # プラグインに定義されている場合
+   npm run lint || pnpm lint
+   npm run check # (Svelte check等)
    ```
 3. **コミット & プッシュ**:
    ```bash
@@ -149,7 +163,13 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    git commit -m "feat(release): configure plugin id/name for i18n and setup BRAT release"
    git push -u origin master
    ```
-4. **GitタグのプッシュによるBRATリリース発行**:
+4. **不要な upstream ワークフローの無効化 (GitHub CLI)**:
+   ```bash
+   # 例: 本家専用リリースワークフロー等の無効化
+   gh workflow disable "Prepare release" || true
+   gh workflow disable "Trigger release" || true
+   ```
+5. **GitタグのプッシュによるBRATリリース発行**:
    ```bash
    git tag <YY.M.D> # 例: git tag 26.8.16
    git push origin <YY.M.D>
