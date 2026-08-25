@@ -114,6 +114,10 @@ function checkI18n(options) {
             }
         }
 
+        if (emptyCount > 0) {
+            console.warn(`[WARN] Found ${emptyCount} empty translations in ${targetLocale}.`);
+        }
+
         if (placeholderMismatchCount === 0) {
             console.log(`[PASS] All placeholders match base locale.`);
         }
