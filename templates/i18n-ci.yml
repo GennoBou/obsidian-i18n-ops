@@ -14,6 +14,12 @@ on:
       - i18n-core
       - 'l10n-*'
   workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run unit tests (disabled by default for speed)'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: i18n-ci-${{ github.workflow }}-${{ github.ref }}
@@ -100,8 +106,9 @@ jobs:
             echo "Error: No build script found in package.json" && exit 1
           fi
 
-      # 単体テスト（存在する場合のみ実行）
-      - name: Run tests
+      # 単体テスト（手動実行時かつ明示的に有効化された場合のみ実行）
+      - name: Run tests (Optional)
+        if: ${{ inputs.run_tests == true }}
         run: |
           if npm run | grep -q "test"; then
             echo "::group::Running tests"

@@ -139,7 +139,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
         - OSマトリクス（macOS / Windows）、CodeQL、重複するフルテスト
         - 対応: CI待ち時間と無料枠消費を削減するため `gh workflow disable <名前>` で無効化。
      3. **Category 3: 多言語化高速CI（新設・運用）**:
-        - `.github/workflows/i18n-ci.yml` で Ubuntu 単一環境にて `check-i18n` + `build` + 単体テストを1〜2分で実行。
+        - `.github/workflows/i18n-ci.yml` で Ubuntu 単一環境にて `check-i18n` + `check` / `lint` + `build` を **30秒〜45秒** で実行（過剰な単体テストは除外）。
      4. **Category 4: BRAT配布リリース（新設・運用）**:
         - `.github/workflows/brat-release.yml` で CalVer 日付タグ（`YY.M.D` / 同日2回目以降は `YY.M.D.N`）によるアセット付きRelease発行を自動化。
 
@@ -151,11 +151,11 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    ```bash
    npm run check-i18n
    ```
-2. **ビルド & 既存Lint/型チェック/テスト実行**:
+2. **ビルド & 既存Lint/型チェック/ローカルテスト実行**:
    - `npm run check-i18n` のほか、プラグイン既存の検証コマンドを実行し、新規追加スクリプトや差分がルール違反していないことを確認:
    ```bash
    npm run build
-   npm test
+   npm test # ローカルでの品質確認
    # プラグインに定義されている場合
    npm run lint || pnpm lint
    npm run check # (Svelte check等)
@@ -182,3 +182,11 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    git push origin 26.8.26
    ```
    GitHub Actions（`brat-release.yml`）が自動起動し、`main.js`, `manifest.json`, `styles.css` を含む GitHub Release を発行します。
+
+6. **CI実行時間の実測確認（過剰動作防止）**:
+   - GitHub Actions の実行時間を実測し、目標基準（1分以内）を達成しているか確認します:
+   ```bash
+   gh run list -L 5
+   # i18n CI: 30〜45秒
+   # Release for BRAT: 40〜50秒
+   ```
