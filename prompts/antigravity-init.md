@@ -34,7 +34,7 @@ upstream/master (オリジナル)
    ・manifest.json の id / name 改名 ("<id>-i18n", "<Name> (i18n)")
    ・README.md (BRATインストール案内)
    ・.github/workflows/ (定期追従 & BRATリリースCI)
-   ・CalVer 日付バージョン (YY.M.D)
+   ・CalVer 日付バージョン (YY.M.D / 同日2回目以降は YY.M.D.N)
 ```
 
 ---
@@ -109,9 +109,9 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
 2. **`manifest.json` の改名（衝突防止）**:
    - `id`: `"<original-id>-i18n"` に変更（例: `"quickadd-i18n"`）
    - `name`: `"<Original Name> (i18n)"` に変更（例: `"QuickAdd (i18n)"`）
-   - `version`: 当日の日付バージョン `YY.M.D`（例: `"26.8.16"`）
+   - `version`: 当日の日付バージョン `YY.M.D`（例: `"26.8.26"`。同日2回目以降は `YY.M.D.N` 形式 例: `"26.8.26.1"`）
 3. **`package.json` の `version` 更新**:
-   - `version` を当日日付形式 `YY.M.D`（例: `"26.8.16"`）に更新。
+   - `version` を当日日付形式 `YY.M.D`（例: `"26.8.26"` / 同日2回目以降は `"26.8.26.1"`）に更新。
 4. **`README.md` 冒頭にBRAT利用案内を追加**:
    ```markdown
    > [!NOTE]
@@ -141,7 +141,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
      3. **Category 3: 多言語化高速CI（新設・運用）**:
         - `.github/workflows/i18n-ci.yml` で Ubuntu 単一環境にて `check-i18n` + `build` + 単体テストを1〜2分で実行。
      4. **Category 4: BRAT配布リリース（新設・運用）**:
-        - `.github/workflows/brat-release.yml` で CalVer 日付タグ（`YY.M.D`）によるアセット付きRelease発行を自動化。
+        - `.github/workflows/brat-release.yml` で CalVer 日付タグ（`YY.M.D` / 同日2回目以降は `YY.M.D.N`）によるアセット付きRelease発行を自動化。
 
 ---
 
@@ -174,8 +174,11 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    gh workflow disable "<本家リリース/テストワークフロー名>"
    ```
 5. **GitタグのプッシュによるBRATリリース発行**:
+   - **初回リリース**: `git tag <YY.M.D>`（例: `git tag 26.8.26`）
+   - **同日2回目以降のリビジョン**: `git tag <YY.M.D.N>`（例: `git tag 26.8.26.1`）
+   - ※ `26.8.26-1` のようなハイフン式はSemVer仕様上プレリリース（＝正式版より古い）と判定されBRAT更新が検知されなくなるため、**必ずピリオド式 `.N` を使用** してください。
    ```bash
-   git tag <YY.M.D> # 例: git tag 26.8.26
-   git push origin <YY.M.D>
+   git tag 26.8.26 # (同日2回目以降なら 26.8.26.1)
+   git push origin 26.8.26
    ```
    GitHub Actions（`brat-release.yml`）が自動起動し、`main.js`, `manifest.json`, `styles.css` を含む GitHub Release を発行します。

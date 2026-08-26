@@ -7,7 +7,7 @@
 ## 目的
 1. `upstream` の最新更新を **多言語化基盤ブランチ (`i18n-core`)** に取り込み、新規UI文字列を `t("...")` でラップして `en.json` を更新。
 2. `i18n-core` を **日本語リソースブランチ (`l10n-ja`)** にマージし、共通用語集に従って `ja.json` に対訳を追加。
-3. `l10n-ja` を **配布用ブランチ (`main` / `master`)** にマージし、日付バージョン（CalVer `YY.M.D`）を更新して検証・PR作成。
+3. `l10n-ja` を **配布用ブランチ (`main` / `master`)** にマージし、日付バージョン（CalVer `YY.M.D` / 同日2回目以降は `YY.M.D.N`）を更新して検証・PR作成。
 
 ---
 
@@ -50,7 +50,7 @@
    git checkout master
    git merge l10n-ja -m "chore(release): sync l10n-ja into master"
    ```
-2. `manifest.json` および `package.json` の `version` を当日日付形式 `YY.M.D`（例: `26.8.17`）に更新します。
+2. `manifest.json` および `package.json` の `version` を当日日付形式 `YY.M.D`（例: `26.8.26`。同日に既にリリース済みの場合は `YY.M.D.N` 形式 例: `26.8.26.1`）に更新します。
    - ※ `manifest.json` の `id: "<plugin-id>-i18n"`, `name: "<Plugin Name> (i18n)"` が維持されていることを確認します。
 3. バリデーションとビルドを実行:
    ```bash
@@ -64,15 +64,16 @@
 4. 変更をコミットしてプッシュ:
    ```bash
    git add manifest.json package.json
-   git commit -m "chore(release): bump version to <YY.M.D>"
+   git commit -m "chore(release): bump version to <YY.M.D or YY.M.D.N>"
    git push origin master
    ```
    > [!TIP]
    > **ワークフローに関する注意**:
    > upstream のマージにより `.github/workflows/` 内のファイルが更新された場合でも、upstream のファイルを直接編集・削除せずそのままマージしてください。もし本家専用の新規ワークフローが追加された場合は、`docs/ci-workflow-guidelines.md` に従って `gh workflow disable` で無効化します。
 
-5. 新しい日付タグ（例: `26.8.26`）をプッシュして GitHub Release を自動発行:
+5. 新しい日付タグ（例: `26.8.26` / 同日2回目以降なら `26.8.26.1`）をプッシュして GitHub Release を自動発行:
+   - ※ `26.8.26-1` 等のハイフン式はプレリリース扱いとなりBRAT自動更新が機能しなくなるため、**必ずピリオド式 `.N` を使用** してください。
    ```bash
-   git tag <YY.M.D>
-   git push origin <YY.M.D>
+   git tag <YY.M.D or YY.M.D.N>
+   git push origin <YY.M.D or YY.M.D.N>
    ```

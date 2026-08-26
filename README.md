@@ -14,7 +14,7 @@
 - **プラグイン衝突防止（manifest改名）**: `id: "<id>-i18n"` と `name: "<Name> (i18n)"` を設定し、Obsidian上でオリジナル版と共存・区別可能。
 - **原文キー方式（Raw Key Approach）**: `t("Original English Text")` を採用し、Zero-dependencyの薄いi18nアダプター（`templates/i18n.ts`）で動作。
 - **決定論的CIチェック**: `scripts/check-i18n.mjs` により、キー過不足や `{placeholder}` の整合性を自動検証。
-- **CalVer日付バージョン & BRAT対応**: 日付バージョン（`YY.M.D` 形式）を採用し、GitHub Releases経由で **Obsidian42 - BRAT** からワンクリック導入・更新可能。
+- **CalVer日付バージョン & BRAT対応**: 日付バージョン（`YY.M.D` / 同日2回目以降は `YY.M.D.N`）を採用し、GitHub Releases経由で **Obsidian42 - BRAT** からワンクリック導入・更新可能。
 
 ---
 
@@ -37,7 +37,7 @@ gitGraph
    checkout l10n-ja
    merge i18n-core id: "新規キーのja翻訳"
    checkout master
-   merge l10n-ja id: "CalVer (YY.M.D) 自動リリース"
+   merge l10n-ja id: "CalVer (YY.M.D / YY.M.D.N) 自動リリース"
 ```
 
 ---
@@ -50,8 +50,8 @@ gitGraph
 | :--- | :--- | :---: | :--- |
 | **① 本家専用・外部依存** | `release-prepare.yml`, `publish.yml`, `docs.yml`, `pr-title.yml` 等 | **`gh workflow disable` (無効化)** | フォーク先では権限やSecretsが存在せず失敗するため。削除・改変せず無効化することでupstream同期時のコンフリクトを防止。 |
 | **② 重厚・過剰テスト** | `codeql.yml`, `dependency-review.yml`, OSマトリクス（macOS/Windows） | **`gh workflow disable` (無効化)** | 多言語化フォークでは不要な重い解析・テストを止め、CI待ち時間と無料枠消費を削減。 |
-| **③ 多言語化高速CI** | [`templates/i18n-ci.yml`](templates/i18n-ci.yml) | **新設 (Active)** | 本家CIと分離し、Ubuntu単一環境で `check-i18n` + `build` + 単体テストを1〜2分で高速実行。 |
-| **④ BRAT配布リリース** | [`templates/brat-release.yml`](templates/brat-release.yml) | **新設 (Active)** | 日付タグ（`YY.M.D`）によるアセット付きReleaseを発行。`styles.css` がないプラグインにも完全対応。 |
+| **③ 多言語化高速CI** | [`templates/i18n-ci.yml`](templates/i18n-ci.yml) | **新設 (Active)** | 本家CIと分離し、Ubuntu単一環境で `check-i18n` + `build` + 単体テストを1〜2分で実行。 |
+| **④ BRAT配布リリース** | [`templates/brat-release.yml`](templates/brat-release.yml) | **新設 (Active)** | 日付タグ（`YY.M.D` / 同日2回目以降は `YY.M.D.N`）によるアセット付きReleaseを発行。`styles.css` がないプラグインにも完全対応。 |
 
 ---
 

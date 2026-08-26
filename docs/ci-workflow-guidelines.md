@@ -39,7 +39,7 @@
 | **Category 1: 本家固有・外部認証依存フロー** | ・`secrets.RELEASE_*` や GitHub App 連携を使用<br>・公式コミュニティ登録リポジトリへのPR作成<br>・ドキュメントサイト（Pages, Vercel等）デプロイ<br>・PRタイトル検証、Stale bot 等 | **`gh workflow disable` (無効化)** | フォーク先では権限やSecretsが存在せず必ず失敗する。また、フォーク側はBRAT配布が主目的のため不要。 |
 | **Category 2: 過剰・重複テストフロー** | ・`strategy.matrix.os` で macOS / Windows を実行<br>・CodeQL 静的コード解析<br>・Dependency Review | **`gh workflow disable` (無効化)** | 多言語化差分においてOS固有の挙動破壊が起きる可能性は極めて低く、CIの無料枠消費と待ち時間を悪化させるため。 |
 | **Category 3: 多言語化高速CI** | ・辞書整合性検証（`check-i18n`）<br>・型/構文チェック（`check` / `lint`）<br>・プラグインビルド（`build`）<br>・主要単体テスト（`test`） | **`templates/i18n-ci.yml` を新設** | 本家のCIファイルを壊さず、`ubuntu-latest` 単一環境でキャッシュを活用して1〜2分以内に決定論的検証を完了させる。 |
-| **Category 4: BRAT配布リリース** | ・日付タグ（CalVer: `YY.M.D`）によるアタッチメント付きGitHub Release発行 | **`templates/brat-release.yml` を新設** | 本家のSemVerリリースとは独立して、BRAT（`manifest.json`, `main.js`, `styles.css`）用配布を完結させる。 |
+| **Category 4: BRAT配布リリース** | ・日付タグ（CalVer: `YY.M.D` / 同日2回目以降は `YY.M.D.N`）によるアタッチメント付きGitHub Release発行 | **`templates/brat-release.yml` を新設** | 本家のSemVerリリースとは独立して、BRAT（`manifest.json`, `main.js`, `styles.css`）用配布を完結させる。 |
 
 ---
 
@@ -79,9 +79,13 @@ flowchart TD
 
 ## 4. BRAT配布における仕様と注意点
 
-### ① `manifest.json` のバージョン同期
+### ① `manifest.json` のバージョン同期 & CalVer 命名規則
 - BRATはリポジトリの最新リリースに添付された `manifest.json` の `version` 文字列とローカルのバージョンを比較してアップデートを判定します。
-- そのため、リリースを発行する際は **`manifest.json` の `version` と Git タグ名（例: `26.8.26`）が完全に一致していること** が必須です。
+- そのため、リリースを発行する際は **`manifest.json` の `version` と Git タグ名が完全に一致していること** が必須です。
+- **バージョニング規則（CalVer）**:
+  - **当日初回リリース**: `YY.M.D`（例: `26.8.26`）
+  - **同日2回目以降のリリース**: `YY.M.D.N`（例: `26.8.26.1`, `26.8.26.2`）
+  - **ハイフン禁止の理由**: `26.8.26-1` のようなハイフン形式は、SemVer 2.0.0 仕様により「プレリリース（正式版より古い）」と判定され、BRATによるアップデート検知が機能しなくなります。必ずピリオド式（`.1`, `.2`）でリビジョン番号を付与してください。
 
 ### ② `styles.css` の有無への汎用耐性
 - プラグインによってはCSSファイルが存在しない（JS単体）場合があります。
