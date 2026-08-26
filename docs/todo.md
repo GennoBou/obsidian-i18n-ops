@@ -19,10 +19,11 @@
 
 ---
 
-## 3. Google Jules を活用した自動翻訳・コンフリクト解消パイプラインの構築
-- **現状**: upstream の更新によって新しい UI 文字列が追加された場合や、コードコンフリクトが発生した場合は、workflow 単体では解決できない。
-- **課題**:
-  - workflow で「新しい翻訳キーの検出」または「コンフリクト発生」を検知した際に、自動で Issue や PR を作成、または Google Jules（エージェント）にタスクを渡して以下の処理を実行させる仕組みを設計・検証する:
-    1. upstream の変更を `i18n-core` にマージし、新しい英語文字列を `t()` 化して `en.json` を更新。
-    2. `l10n-ja` ブランチで用語集（`glossary/obsidian-ja.json`）を参照して `ja.json` に日本語訳を追加・更新。
-    3. `master` にマージして PR を作成（または自動マージ＆リリース）。
+## 3. Google Jules を活用した自動翻訳・コンフリクト解消パイプラインの構築 【完了】
+- **解決方針**:
+  - `templates/upstream-sync.yml` において、コンフリクト時や未翻訳キー検出時に、Google Jules がそのまま読み込んでタスクを実行できる指示・リンク付き GitHub Issue（`[Jules Sync]`）を自動起票する仕組みを実装。
+  - [`prompts/jules-sync.md`](../prompts/jules-sync.md) を、新規キー翻訳モードとコンフリクト解消モードの2系統で完全手順化した高精度プロンプトへ刷新。
+- **成果物**:
+  - [`prompts/jules-sync.md`](../prompts/jules-sync.md)
+  - [`templates/upstream-sync.yml`](../templates/upstream-sync.yml) 内の Issue テンプレート連携スクリプト
+

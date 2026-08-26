@@ -1,79 +1,109 @@
 # Google Jules 指示書: upstream差分同期 & 差分i18n翻訳
 
-この指示書は、フォーク元（upstream）に新しいコミットや機能追加があった際に、Google Julesが3層ブランチ戦略に沿って差分を取り込み、多言語化・日本語翻訳・リリース準備を行うための手順書です。
+この指示書は、フォーク元（upstream）に新しいコミットや機能追加があった際、または GitHub Issue（`[Jules Sync]`）が作成された際に、Google Jules（AIエージェント）が3層ブランチ戦略に沿って差分同期・多言語化・日本語翻訳・リリースを完結させるための手順書です。
 
 ---
 
-## 目的
-1. `upstream` の最新更新を **多言語化基盤ブランチ (`i18n-core`)** に取り込み、新規UI文字列を `t("...")` でラップして `en.json` を更新。
-2. `i18n-core` を **日本語リソースブランチ (`l10n-ja`)** にマージし、共通用語集に従って `ja.json` に対訳を追加。
-3. `l10n-ja` を **配布用ブランチ (`main` / `master`)** にマージし、日付バージョン（CalVer `YY.M.D` / 同日2回目以降は `YY.M.D.N`）を更新して検証・PR作成。
+## 🎯 目的
+1. upstream の最新更新を **多言語化基盤層 (`i18n-core`)** に取り込み、新規UI文字列を `t("...")` でラップして `src/locales/en.json` を更新（またはコンフリクトを解消）。
+2. `i18n-core` を **日本語リソース層 (`l10n-ja`)** にマージし、公式用語集に従って `src/locales/ja.json` に対訳を追加。
+3. `l10n-ja` を **配布用層 (`master` / `main`)** にマージし、CalVer日付バージョン（`YY.M.D[.N]`）を更新して検証・リリース発行。
 
 ---
 
-## 実行手順
+## 📚 参照リソース（用語集・スタイルガイド）
+翻訳時は必ず以下の中央用語集・ルールを参照してください：
+- **Obsidian 公式UI標準用語集**: [glossary/obsidian-ja.json](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/obsidian-ja.json)
+- **スタイルガイド & 翻訳ルール**: [glossary/I18N.md](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/I18N.md)
 
-### Step 1: `i18n-core` ブランチの差分同期
-1. `i18n-core` ブランチをチェックアウトし、`upstream/master`（または `upstream/main`）を取り込みます:
+---
+
+## 🛠️ 実行手順（2つのシナリオ）
+
+### シナリオ A: 新規UI文字列の追加検知時（未翻訳キーの解消）
+
+#### Step 1: `i18n-core` の確認とプッシュ
+1. `i18n-core` ブランチをチェックアウト:
    ```bash
    git checkout i18n-core
-   git merge upstream/master -m "chore(upstream): merge latest upstream changes"
+   git pull origin i18n-core
    ```
-2. upstreamで新規追加・変更されたUI文字列（設定画面、コマンド、モーダル、通知等）を検出します。
-3. `src/i18n.ts` の `t` を使用して `t("English String")` に置換します。
-4. 新規キーを `src/locales/en.json` に追加します。
-5. コミットしてプッシュ:
+2. upstream の新規UI文字列がすべて `t("English")` でラップされ、`src/locales/en.json` にキーが存在することを確認。
+3. 漏れがあれば置換・追加してプッシュ:
    ```bash
    git add .
-   git commit -m "feat(i18n): wrap new upstream UI strings with t()"
+   git commit -m "feat(i18n): wrap new UI strings with t()"
    git push origin i18n-core
    ```
 
-### Step 2: `l10n-ja` ブランチへの反映 & 日本語翻訳
-1. `l10n-ja` ブランチをチェックアウトし、`i18n-core` をマージします:
+#### Step 2: `l10n-ja` ブランチでの日本語翻訳
+1. `l10n-ja` ブランチをチェックアウトし、`i18n-core` をマージ:
    ```bash
    git checkout l10n-ja
    git merge i18n-core -m "chore(sync): merge i18n-core into l10n-ja"
    ```
-2. 共通用語集（`obsidian-ja.json`, `I18N.md`）を参照し、`src/locales/ja.json` に新規キーの日本語訳を追加します。
-3. プレースホルダー（`{name}` など）が英語と完全一致していることを確認します。
+2. `glossary/obsidian-ja.json` を参照し、`src/locales/ja.json` に不足しているキーの日本語訳を追加。
+   - **文体**: 簡潔で自然な日本語（「です・ます」調推奨）。
+   - **プレースホルダー**: `{name}`, `{count}` などの変数は原文と完全一致させる。
+3. 辞書検証スクリプトを実行し、エラーが0件であることを確認:
+   ```bash
+   npm run check-i18n
+   ```
 4. コミットしてプッシュ:
    ```bash
    git add src/locales/ja.json
-   git commit -m "feat(l10n): update Japanese translations for new keys"
+   git commit -m "feat(l10n): add Japanese translations for upstream changes"
    git push origin l10n-ja
    ```
 
-### Step 3: `main` / `master` への反映 & リリース準備
-1. `master`（または `main`）ブランチをチェックアウトし、`l10n-ja` をマージします:
+#### Step 3: `master` への反映 & CalVer リリース
+1. `master`（または `main`）ブランチをチェックアウトし、`l10n-ja` をマージ:
    ```bash
    git checkout master
    git merge l10n-ja -m "chore(release): sync l10n-ja into master"
    ```
-2. `manifest.json` および `package.json` の `version` を当日日付形式 `YY.M.D`（例: `26.8.26`。同日に既にリリース済みの場合は `YY.M.D.N` 形式 例: `26.8.26.1`）に更新します。
-   - ※ `manifest.json` の `id: "<plugin-id>-i18n"`, `name: "<Plugin Name> (i18n)"` が維持されていることを確認します。
-3. バリデーションとビルドを実行:
+2. **当日の CalVer 日付バージョンを決定**:
+   - 当日初回: `YY.M.D`（例: `26.8.26`）
+   - 同日2回目以降: `YY.M.D.N`（例: `26.8.26.1`, `26.8.26.2`）※ハイフン禁止。
+3. `manifest.json` および `package.json` の `version` を更新。
+   - ※ `manifest.json` の `id: "<id>-i18n"`, `name: "<Name> (i18n)"` が維持されていることを確認。
+4. 検証とビルドを実行:
    ```bash
-   npm run check-i18n
-   npm run build
-   npm test
-   # プラグインに定義されている場合
-   npm run lint || pnpm lint
    npm run check
+   npm run build
    ```
-4. 変更をコミットしてプッシュ:
+5. コミット、プッシュ、および日付タグをプッシュ:
    ```bash
    git add manifest.json package.json
-   git commit -m "chore(release): bump version to <YY.M.D or YY.M.D.N>"
+   git commit -m "chore(release): bump version to <YY.M.D[.N]>"
    git push origin master
+   git tag <YY.M.D[.N]>
+   git push origin <YY.M.D[.N]>
    ```
-   > [!TIP]
-   > **ワークフローに関する注意**:
-   > upstream のマージにより `.github/workflows/` 内のファイルが更新された場合でも、upstream のファイルを直接編集・削除せずそのままマージしてください。もし本家専用の新規ワークフローが追加された場合は、`docs/ci-workflow-guidelines.md` に従って `gh workflow disable` で無効化します。
+   `brat-release.yml` が自動起動し、BRAT用 GitHub Release が発行されます。
 
-5. 新しい日付タグ（例: `26.8.26` / 同日2回目以降なら `26.8.26.1`）をプッシュして GitHub Release を自動発行:
-   - ※ `26.8.26-1` 等のハイフン式はプレリリース扱いとなりBRAT自動更新が機能しなくなるため、**必ずピリオド式 `.N` を使用** してください。
+---
+
+### シナリオ B: マージコンフリクト発生時
+
+1. `i18n-core` ブランチで upstream の最新を取り込み:
    ```bash
-   git tag <YY.M.D or YY.M.D.N>
-   git push origin <YY.M.D or YY.M.D.N>
+   git checkout i18n-core
+   git fetch upstream
+   git merge upstream/master # (または upstream/main)
    ```
+2. 競合ファイルを解消:
+   - upstream側の新コードを採用しつつ、UI文字列が追加・変更されている場合は `t("...")` でラップ。
+   - `src/locales/en.json` を更新。
+3. マージコミットを作成してプッシュ:
+   ```bash
+   git commit -m "chore(sync): resolve upstream merge conflicts"
+   git push origin i18n-core
+   ```
+4. 以降は **シナリオ A の Step 2 〜 Step 3** と同様に `l10n-ja` の日本語辞書更新 ➔ `master` への CalVer リリースを実施。
+
+---
+
+## ⚠️ 重要な注意事項
+- **upstream ワークフローの不可侵**: upstream のマージによって `.github/workflows/` に本家専用ファイルが追加された場合でも直接削除せず、`docs/ci-workflow-guidelines.md` に従って `gh workflow disable` で停止してください。
+- **過剰テストの防止**: CIを高速（1分以内）に維持するため、日常の自動CIには重い単体テストを含めません。
