@@ -126,19 +126,22 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    
    ---
    ```
-5. **CIワークフローの配置 & upstream ワークフローの3分類整理**:
+5. **CIワークフローの配置 & upstream ワークフローの汎用4象限分類・無効化**:
    - `templates/upstream-sync.yml` を `.github/workflows/upstream-sync.yml` に配置。
-   - `templates/release.yml` を `.github/workflows/release.yml` に配置。
-   - **ワークフローの3分類整理ルール**:
-     1. **① そのまま利用する (Active / As-is)**:
-        - 単体テスト・ビルド・型チェック・Lint (`ci.yml`, `test.yml`, `codeql.yml` 等)
-        - フォーク先でもコード品質を担保するため有効のまま維持。
-     2. **② 無効化し、代理の workflow を作成・使用する (Disable & Replace)**:
-        - 本家の公式リリース・タグ付けワークフロー（公式プラグインディレクトリ公開用や本家トークン依存のもの）
-        - `gh workflow disable <workflow-name>` で無効化し、BRAT用 `release.yml` を代理で使用。
-     3. **③ 無効化する（まったく機能を利用しない） (Disable & Ignore)**:
-        - 本家専用のリリース準備ボット、Issue/PRトリアージ、ドキュメントデプロイ (`release-prepare.yml`, `release-trigger.yml`, `docs.yml`, `stale.yml` 等)
-        - フォーク先では不要かつ失敗の原因となるため、**コードを変更・削除せず** `gh workflow disable <workflow-name>` で無効化。
+   - `templates/i18n-ci.yml` を `.github/workflows/i18n-ci.yml` に配置。
+   - `templates/brat-release.yml` を `.github/workflows/brat-release.yml` に配置。
+   - **ワークフローの4象限分類＆無効化の判定ルール**:
+     詳細は `docs/ci-workflow-guidelines.md` を参照し、フォーク元の既存 `.github/workflows/*.yml` を検査して以下のように判定・対応する。
+     1. **Category 1: 本家固有・外部認証依存フロー（無効化）**:
+        - Secrets（GitHub App / Bot トークン等）参照、公式コミュニティPR、Docsデプロイ、Stale bot 等
+        - 対応: コードを削除せず `gh workflow disable <名前>` で無効化（upstream更新時のコンフリクトを原理的に防止）。
+     2. **Category 2: 過剰・重複テストフロー（無効化）**:
+        - OSマトリクス（macOS / Windows）、CodeQL、重複するフルテスト
+        - 対応: CI待ち時間と無料枠消費を削減するため `gh workflow disable <名前>` で無効化。
+     3. **Category 3: 多言語化高速CI（新設・運用）**:
+        - `.github/workflows/i18n-ci.yml` で Ubuntu 単一環境にて `check-i18n` + `build` + 単体テストを1〜2分で実行。
+     4. **Category 4: BRAT配布リリース（新設・運用）**:
+        - `.github/workflows/brat-release.yml` で CalVer 日付タグ（`YY.M.D`）によるアセット付きRelease発行を自動化。
 
 ---
 
@@ -163,15 +166,16 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    git commit -m "feat(release): configure plugin id/name for i18n and setup BRAT release"
    git push -u origin master
    ```
-4. **不要な upstream ワークフローの無効化 (GitHub CLI)**:
+4. **不要な upstream ワークフローの一括無効化 (GitHub CLI)**:
+   - Category 1 および Category 2 に該当する既存ワークフローを無効化:
    ```bash
-   # 例: 本家専用リリースワークフロー等の無効化
-   gh workflow disable "Prepare release" || true
-   gh workflow disable "Trigger release" || true
+   # 例: ワークフロー一覧を確認して無効化
+   gh workflow list
+   gh workflow disable "<本家リリース/テストワークフロー名>"
    ```
 5. **GitタグのプッシュによるBRATリリース発行**:
    ```bash
-   git tag <YY.M.D> # 例: git tag 26.8.16
+   git tag <YY.M.D> # 例: git tag 26.8.26
    git push origin <YY.M.D>
    ```
-   GitHub Actions が自動起動し、`main.js`, `manifest.json`, `styles.css` を含む GitHub Release を発行します。
+   GitHub Actions（`brat-release.yml`）が自動起動し、`main.js`, `manifest.json`, `styles.css` を含む GitHub Release を発行します。

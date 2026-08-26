@@ -42,15 +42,16 @@ gitGraph
 
 ---
 
-## ⚙️ GitHub Actions ワークフローの3分類運用設計
+## ⚙️ GitHub Actions ワークフローの汎用設計＆分類指針
 
-フォーク先リポジトリにおいて upstream（本家）のワークフローとの衝突を防ぎ、更新追従時に壊れないようにするため、ワークフローを以下の3つに明確に分類して運用します。
+フォーク先リポジトリにおいて upstream（本家）のワークフローとの衝突を防ぎ、CI時間を最小化して更新追従を安定させるため、ワークフローを**4象限分類ルール**に従って運用します。詳細は [docs/ci-workflow-guidelines.md](docs/ci-workflow-guidelines.md) を参照してください。
 
-| 分類 | ワークフロー例 | フォーク先での扱い | 理由 |
+| 分類 | 判定基準・対象例 | フォーク先での扱い | 理由 |
 | :--- | :--- | :---: | :--- |
-| **① そのまま利用 (Active)** | `ci.yml`, `test.yml`, `codeql.yml` | **有効のまま維持** | upstream のコード更新や自前の差分取り込み時、ビルド・テスト・Lint の品質を自動検証するために活用。 |
-| **② 無効化＆代理作成 (Replace)** | 公式コミュニティ公開用 `release.yml` | **無効化 ＋ BRAT用作成** | 本家のリリースフローを `gh workflow disable` で止め、代理として CalVer 日付リリースの [`templates/release.yml`](templates/release.yml) を配置。 |
-| **③ 完全無効化 (Disable & Ignore)** | `release-prepare.yml`, `docs.yml`, `stale.yml` | **無効化（コード改変なし）** | 本家作者専用の GitHub App / 権限 / Bot に依存するワークフロー。コードを削除・変更せず `gh workflow disable` で停止し、upstream 更新時のマージコンフリクトを原理的に防止。 |
+| **① 本家専用・外部依存** | `release-prepare.yml`, `publish.yml`, `docs.yml`, `pr-title.yml` 等 | **`gh workflow disable` (無効化)** | フォーク先では権限やSecretsが存在せず失敗するため。削除・改変せず無効化することでupstream同期時のコンフリクトを防止。 |
+| **② 重厚・過剰テスト** | `codeql.yml`, `dependency-review.yml`, OSマトリクス（macOS/Windows） | **`gh workflow disable` (無効化)** | 多言語化フォークでは不要な重い解析・テストを止め、CI待ち時間と無料枠消費を削減。 |
+| **③ 多言語化高速CI** | [`templates/i18n-ci.yml`](templates/i18n-ci.yml) | **新設 (Active)** | 本家CIと分離し、Ubuntu単一環境で `check-i18n` + `build` + 単体テストを1〜2分で高速実行。 |
+| **④ BRAT配布リリース** | [`templates/brat-release.yml`](templates/brat-release.yml) | **新設 (Active)** | 日付タグ（`YY.M.D`）によるアセット付きReleaseを発行。`styles.css` がないプラグインにも完全対応。 |
 
 ---
 
@@ -63,16 +64,19 @@ obsidian-i18n-ops/
 ├── glossary/                       # 汎用対訳集・翻訳ルール
 │   ├── obsidian-ja.json            # Obsidian公式UI標準用語集
 │   └── I18N.md                     # スタイルガイド & 翻訳ルール
-├── templates/                      # プラグイン配置用テンプレート
+├── templates/                      # プラグイン配置用汎用テンプレート
 │   ├── i18n.ts                     # 軽量i18nアダプター（Zero-dependency）
-│   ├── release.yml                 # BRAT用自動リリースワークフロー
-│   └── upstream-sync.yml           # プラグイン用CI設定テンプレート
+│   ├── i18n-ci.yml                 # 多言語化フォーク用高速CI
+│   ├── brat-release.yml            # BRAT用CalVer自動リリースワークフロー
+│   └── upstream-sync.yml           # プラグイン用upstream同期ワークフロー
 ├── scripts/                        # 検証スクリプト
 │   └── check-i18n.mjs              # 辞書・プレースホルダー検証スクリプト
 ├── prompts/                        # AI指示書
 │   ├── antigravity-init.md         # 初回全コードi18n化用指示書（Antigravity用）
 │   └── jules-sync.md               # 日々の差分同期用指示書（Google Jules用）
-└── docs/                           # 設計書および検討履歴
+└── docs/                           # 設計書および運用指針
+    ├── ci-workflow-guidelines.md   # CIワークフロー設計・判定指針
+    └── todo.md                     # 検討・検証課題
 ```
 
 ---

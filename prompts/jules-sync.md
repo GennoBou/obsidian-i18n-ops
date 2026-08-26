@@ -67,7 +67,11 @@
    git commit -m "chore(release): bump version to <YY.M.D>"
    git push origin master
    ```
-5. 新しい日付タグ（例: `26.8.17`）をプッシュして GitHub Release を自動発行:
+   > [!TIP]
+   > **ワークフローに関する注意**:
+   > upstream のマージにより `.github/workflows/` 内のファイルが更新された場合でも、upstream のファイルを直接編集・削除せずそのままマージしてください。もし本家専用の新規ワークフローが追加された場合は、`docs/ci-workflow-guidelines.md` に従って `gh workflow disable` で無効化します。
+
+5. 新しい日付タグ（例: `26.8.26`）をプッシュして GitHub Release を自動発行:
    ```bash
    git tag <YY.M.D>
    git push origin <YY.M.D>
