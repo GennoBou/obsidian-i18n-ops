@@ -10,10 +10,12 @@
 
 ---
 
-## 2. GitHub Actions による upstream 更新チェック＆自動マージの検証
-- **現状**: `.github/workflows/upstream-sync.yml` を配置し、日次または手動で upstream の更新有無を検知できるようにした。
-- **課題**:
-  - 本家（upstream）に更新があった際、コンフリクトがない軽微な変更（新機能追加がなくコード修正のみ等）の場合、workflow 単体で `i18n-core` $\rightarrow$ `l10n-ja` $\rightarrow$ `master` の自動追従・自動マージ・自動リリースまで完結できるかを検証・設計する。
+## 2. GitHub Actions による upstream 更新チェック＆自動マージの検証 【完了】
+- **解決方針**:
+  - `templates/upstream-sync.yml` に 3層ブランチ（`i18n-core` ➔ `l10n-ja` ➔ `master`）の自動マージ、CalVer（`YY.M.D[.N]`）自動計算、タグ発行、未翻訳キー/コンフリクト検知時の安全なIssue通知パイプラインを実装。
+- **成果物**:
+  - [`templates/upstream-sync.yml`](../templates/upstream-sync.yml)（汎用自動同期＆自動マージ・自動リリース）
+  - QuickAddリポジトリ（`.github/workflows/upstream-sync.yml`）に適用。
 
 ---
 
