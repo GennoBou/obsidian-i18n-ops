@@ -121,38 +121,14 @@ jobs:
           script: |
             const dateStr = new Date().toISOString().split('T')[0];
             const title = `⚠️ [Jules Sync] Upstream Conflict in i18n-core (${dateStr})`;
-            const body = `## 🤖 Google Jules / AI Agent Task Instructions
-upstream (\`${{ steps.detect.outputs.upstream_branch }}\`) の最新差分を \`i18n-core\` にマージする際にコード競合が発生しました。
+            const body = `## 🤖 Google Jules タスク指示書 (Conflict Resolution)
+\`i18n-core\` ブランチで upstream (\`${{ steps.detect.outputs.upstream_branch }}\`) のマージ時に競合が発生しました。
 
-### 📋 タスク手順
-1. **ブランチのチェックアウト & コンフリクト解消**:
-   \`\`\`bash
-   git checkout i18n-core
-   git merge upstream/${{ steps.detect.outputs.upstream_branch }}
-   # 競合箇所を解消。新しく追加されたUI文字列は t("...") でラップしてください。
-   git commit -m "chore(sync): resolve upstream merge conflicts and wrap new UI strings"
-   git push origin i18n-core
-   \`\`\`
-2. **日本語リソースの更新 (\`l10n-ja\` ブランチ)**:
-   \`\`\`bash
-   git checkout l10n-ja
-   git merge i18n-core
-   # [用語集](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/obsidian-ja.json) を参照して src/locales/ja.json を更新
-   npm run check-i18n
-   git commit -am "feat(l10n): update Japanese dictionary"
-   git push origin l10n-ja
-   \`\`\`
-3. **リリース準備 (\`master\` / \`main\` ブランチ)**:
-   \`\`\`bash
-   git checkout master
-   git merge l10n-ja
-   # manifest.json / package.json の version を当日の CalVer (YY.M.D[.N]) に更新
-   npm run check && npm run build
-   git commit -am "chore(release): bump version to <YY.M.D[.N]>"
-   git push origin master
-   git tag <YY.M.D[.N]>
-   git push origin <YY.M.D[.N]>
-   \`\`\`
+### 📋 実行手順
+1. \`i18n-core\` をベースに作業ブランチを作成し、競合を解決してください。
+2. 新規追加された UI 文字列がある場合は \`t("...")\` でラップし、\`src/locales/en.json\` に追加してください。
+3. 既存のファイル（\`.github/workflows/\`, \`manifest.json\` 等）を削除・初期化してはなりません。
+4. \`i18n-core\` に対する Pull Request を作成してください。
 
 - **Upstream Commit**: \`${{ steps.detect.outputs.upstream_head }}\``;
 
@@ -194,33 +170,17 @@ upstream (\`${{ steps.detect.outputs.upstream_branch }}\`) の最新差分を \`
           script: |
             const dateStr = new Date().toISOString().split('T')[0];
             const title = `🌐 [Jules Sync] New Untranslated Keys Detected (${dateStr})`;
-            const body = `## 🤖 Google Jules / AI Agent Task Instructions
-upstream の最新更新を取り込んだ結果、新規UI文字列が追加され \`src/locales/ja.json\` の翻訳が必要です。
+            const body = `## 🤖 Google Jules タスク指示書 (Japanese Translation)
+upstream の最新更新を取り込んだ結果、新規UI文字列が追加されました。\n\`src/locales/ja.json\` に日本語訳を追加してください。
 
-### 📋 タスク手順
-1. **日本語リソースの更新 (\`l10n-ja\` ブランチ)**:
-   \`\`\`bash
-   git checkout l10n-ja
-   git merge i18n-core
-   \`\`\`
-   - [公式用語集](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/obsidian-ja.json) および [翻訳ルール](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/I18N.md) を参照し、\`src/locales/ja.json\` に日本語訳を追加。
-   - プレースホルダー（\`{name}\`, \`{count}\` 等）の整合性を維持。
-   - \`npm run check-i18n\` を実行してエラー0件を確認。
-   \`\`\`bash
-   git commit -am "feat(l10n): add Japanese translations for upstream changes"
-   git push origin l10n-ja
-   \`\`\`
-2. **リリース準備 (\`master\` / \`main\` ブランチ)**:
-   \`\`\`bash
-   git checkout master
-   git merge l10n-ja
-   # manifest.json と package.json の version を当日の CalVer (YY.M.D[.N]) に更新
-   npm run check && npm run build
-   git commit -am "chore(release): bump version to <YY.M.D[.N]>"
-   git push origin master
-   git tag <YY.M.D[.N]>
-   git push origin <YY.M.D[.N]>
-   \`\`\`
+### 📋 実行手順
+1. \`node scripts/check-i18n.mjs\`（または \`npm run check-i18n\`）を実行し、未翻訳キー一覧を確認してください。
+2. [Obsidian公式用語集](https://raw.githubusercontent.com/GennoBou/obsidian-i18n-ops/main/glossary/obsidian-ja.json) を参照し、\`src/locales/ja.json\` に日本語訳を追加してください。
+   - プレースホルダー（\`{name}\`, \`{count}\` 等）は原文と完全一致させてください。
+   - 自然な日本語（「です・ます」調）で記述してください。
+3. \`node scripts/check-i18n.mjs\` を再実行し、エラー 0 件を確認してください。
+4. \`src/locales/ja.json\` の変更のみを含む Pull Request を作成してください。
+   - ※ \`.github/\` や \`manifest.json\` などのファイルを削除・初期化してはなりません。
 
 - **Upstream Commit**: \`${{ steps.detect.outputs.upstream_head }}\``;
 
