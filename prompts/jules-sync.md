@@ -5,7 +5,8 @@
 ---
 
 ## 🎯 タスクの目的
-`src/locales/en.json`（ベース英語辞書）に新しく追加されたキーを検出し、公式用語集・スタイルガイドに従って `src/locales/ja.json` に自然な日本語訳を追加・検証して PR を作成すること。
+`src/locales/en.json`（ベース英語辞書）に新しく追加されたキーを検出し、公式用語集・スタイルガイドに従って `src/locales/ja.json` に自然な日本語訳を追加・検証して `l10n-ja` ブランチへの Pull Request を作成すること。
+（※ PRマージ後、変更は `l10n-ja` ➔ `feat-localize` ➔ `master` へと順次マージリレーされます）
 
 ---
 

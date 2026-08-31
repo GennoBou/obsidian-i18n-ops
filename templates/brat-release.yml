@@ -3,7 +3,10 @@ name: Release for BRAT
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+      - '*.*.*'
+      - '*.*.*.*'
+      - '[0-9]*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag_name:
@@ -57,7 +60,7 @@ jobs:
       # 多言語化辞書・プレースホルダー検証
       - name: Validate i18n
         run: |
-          if npm run | grep -q "check-i18n"; then
+          if node -e "process.exit(require('./package.json').scripts?.['check-i18n'] ? 0 : 1)"; then
             echo "::group::Running check-i18n"
             npm run check-i18n
             echo "::endgroup::"
@@ -70,12 +73,33 @@ jobs:
       # プラグインのビルド
       - name: Build plugin
         run: |
-          if npm run | grep -q "build-with-lint"; then
+          if node -e "process.exit(require('./package.json').scripts?.['build-with-lint'] ? 0 : 1)"; then
             npm run build-with-lint
-          elif npm run | grep -q "build"; then
+          elif node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
             npm run build
           else
             echo "Error: No build script found in package.json" && exit 1
+          fi
+
+      # 配布用 localize.json の生成（en.json の最新キーを含める）
+      - name: Prepare localize.json asset
+        run: |
+          if [ -f "src/locales/en.json" ]; then
+            node -e "
+              const fs = require('fs');
+              const en = JSON.parse(fs.readFileSync('src/locales/en.json', 'utf8'));
+              let targetLang = '';
+              let existingRes = {};
+              if (fs.existsSync('localize.json')) {
+                try {
+                  const current = JSON.parse(fs.readFileSync('localize.json', 'utf8'));
+                  targetLang = current.language || '';
+                  existingRes = current.resource || {};
+                } catch {}
+              }
+              const mergedResource = { ...en, ...existingRes };
+              fs.writeFileSync('localize.json', JSON.stringify({ language: targetLang, resource: mergedResource }, null, 2) + '\n');
+            "
           fi
 
       # BRAT配布用 GitHub Release 発行（styles.css は存在しないプラグインもあるため fail_on_unmatched_files: false）
@@ -92,3 +116,4 @@ jobs:
             main.js
             manifest.json
             styles.css
+            localize.json

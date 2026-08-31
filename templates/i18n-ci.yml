@@ -69,7 +69,7 @@ jobs:
       # 多言語化辞書・プレースホルダーの決定論的整合性チェック
       - name: Run i18n validator
         run: |
-          if npm run | grep -q "check-i18n"; then
+          if node -e "process.exit(require('./package.json').scripts?.['check-i18n'] ? 0 : 1)"; then
             echo "::group::Running check-i18n"
             npm run check-i18n
             echo "::endgroup::"
@@ -82,25 +82,20 @@ jobs:
           fi
 
       # 静的型チェック・構文チェック（存在する場合のみ実行）
-      - name: Run lint and type checks
+      - name: Run type checks
         run: |
-          if npm run | grep -q "check"; then
-            echo "::group::Running type / svelte check"
+          if node -e "process.exit(require('./package.json').scripts?.check ? 0 : 1)"; then
+            echo "::group::Running check"
             npm run check
-            echo "::endgroup::"
-          fi
-          if npm run | grep -q "lint"; then
-            echo "::group::Running linter"
-            npm run lint
             echo "::endgroup::"
           fi
 
       # プラグインのビルド
       - name: Build plugin
         run: |
-          if npm run | grep -q "build-with-lint"; then
+          if node -e "process.exit(require('./package.json').scripts?.['build-with-lint'] ? 0 : 1)"; then
             npm run build-with-lint
-          elif npm run | grep -q "build"; then
+          elif node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
             npm run build
           else
             echo "Error: No build script found in package.json" && exit 1

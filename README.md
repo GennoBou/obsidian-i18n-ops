@@ -7,10 +7,12 @@
 ## 🎯 目的と特徴
 
 - **完全な汎用基盤**: 特定のプラグインに依存せず、任意のObsidianプラグインに適用可能。
-- **3層ブランチ戦略**:
+- **4層ブランチ戦略**:
   - `i18n-core`: 言語中立なi18n化層（将来upstreamへのPR還元が可能）
-  - `l10n-ja`: 日本語辞書リソース層（他言語の追加も容易）
-  - `main` / `master`: BRAT配布用設定（manifest改名、CalVerリリースCI）
+  - `l10n-ja`: 日本語辞書リソース層（公式内蔵日本語）
+  - `feat-localize`: 動的ローカライズ層（ビルド不要で言語追加・オーバーライドが可能な `localize.json` 拡張）
+  - `main` / `master`: BRAT配布用設定（manifest改名、CalVerリリースCI、アセット配布）
+- **動的ローカライズ対応（`localize.json`）**: 配布フォルダ内の `localize.json` を編集するだけで、ビルド不要で任意の言語を追加・上書き（カスタム翻訳・方言など）可能。ファイルが存在しない場合も内蔵英語リソースから自動生成（自己復元）されるフェールセーフ機構付き。
 - **プラグイン衝突防止（manifest改名）**: `id: "<id>-i18n"` と `name: "<Name> (i18n)"` を設定し、Obsidian上でオリジナル版と共存・区別可能。
 - **原文キー方式（Raw Key Approach）**: `t("Original English Text")` を採用し、Zero-dependencyの薄いi18nアダプター（`templates/i18n.ts`）で動作。
 - **決定論的CIチェック**: `scripts/check-i18n.mjs` により、キー過不足や `{placeholder}` の整合性を自動検証。
@@ -18,17 +20,20 @@
 
 ---
 
-## 🌳 3層ブランチアーキテクチャ
+## 🌳 4層ブランチアーキテクチャ
 
 ```mermaid
 gitGraph
    commit id: "upstream/master (オリジナル)"
    branch i18n-core
    checkout i18n-core
-   commit id: "t()化 + en.json (言語中立)"
+   commit id: "t()化 + en.json (言語中立・PR還元可能)"
    branch l10n-ja
    checkout l10n-ja
-   commit id: "ja.json 追加 (日本語化)"
+   commit id: "ja.json 追加 (公式日本語)"
+   branch feat-localize
+   checkout feat-localize
+   commit id: "localize.json 動的ロード機能追加"
    branch master
    checkout master
    commit id: "manifest改名 + BRATリリース設定"
@@ -36,8 +41,10 @@ gitGraph
    commit id: "upstream更新取り込み"
    checkout l10n-ja
    merge i18n-core id: "新規キーのja翻訳"
+   checkout feat-localize
+   merge l10n-ja id: "localize同期"
    checkout master
-   merge l10n-ja id: "CalVer (YY.M.D / YY.M.D.N) 自動リリース"
+   merge feat-localize id: "CalVer (YY.M.D / YY.M.D.N) 自動リリース"
 ```
 
 ---
@@ -65,7 +72,8 @@ obsidian-i18n-ops/
 │   ├── obsidian-ja.json            # Obsidian公式UI標準用語集
 │   └── I18N.md                     # スタイルガイド & 翻訳ルール
 ├── templates/                      # プラグイン配置用汎用テンプレート
-│   ├── i18n.ts                     # 軽量i18nアダプター（Zero-dependency）
+│   ├── i18n.ts                     # 軽量i18nアダプター（Zero-dependency & 動的ロード対応）
+│   ├── localize.json               # 動的多言語対応用テンプレート
 │   ├── i18n-ci.yml                 # 多言語化フォーク用高速CI
 │   ├── brat-release.yml            # BRAT用CalVer自動リリースワークフロー
 │   └── upstream-sync.yml           # プラグイン用upstream同期ワークフロー

@@ -135,3 +135,16 @@ flowchart TD
 ### ③ GitHub Actions の権限（Workflow Permissions）
 - フォークリポジトリでは `GITHUB_TOKEN` の権限がデフォルトで制限されている場合があります。
 - リポジトリの **Settings ➔ Actions ➔ General ➔ Workflow permissions** で **「Read and write permissions」** を有効にする必要があります。
+- CLI コマンド:
+  ```bash
+  gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -f default_workflow_permissions=write
+  ```
+
+### ④ master ブランチ保護ルールセット（Ruleset）の自動設定
+- 翻訳フォークでは、以下の目的のために `master` ブランチ保護を行います:
+  - **誤削除防止 (`deletion`)** & **誤った Force push 防止 (`non_fast_forward`)**
+  - **GitHub Actions (`upstream-sync.yml`) および管理者による自動 push のバイパス許可 (`bypass_actors`)**
+- `scripts/setup-repo-security.ps1`（または `.sh`）を実行することで、Workflow 権限と Ruleset の両方を一括で自動適用できます:
+  ```powershell
+  pwsh scripts/setup-repo-security.ps1 -Repo "<owner>/<repo>"
+  ```
