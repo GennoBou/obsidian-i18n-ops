@@ -192,25 +192,27 @@ npm run build
    git checkout -b feat-localize l10n-ja
    ```
 
-2. `src/locales/en.json` の内容を `resource` に含めた `localize.json` をルートに生成:
+2. `src/locales/en.json` の内容を `translations` に含めた `localize.json` テンプレートをルートに生成:
 
    ```bash
-   # en.json の全原文キーと英語内容を resource に流し込んだ localize.json を生成
-   node -e "const fs = require('fs'); const en = JSON.parse(fs.readFileSync('src/locales/en.json', 'utf8')); fs.writeFileSync('localize.json', JSON.stringify({ language: '', resource: en }, null, 2) + '\n');"
+   node -e "const fs = require('fs'); const en = JSON.parse(fs.readFileSync('src/locales/en.json', 'utf8')); fs.writeFileSync('localize.json', JSON.stringify({ '\$schema': 'https://json-schema.org/draft/2020-12/schema', description: 'Custom UI translation overlay. Set language code (e.g. \"de\", \"fr\") and modify translations.', language: '', translations: en }, null, 2) + '\n');"
    ```
 
    生成される `localize.json` の構造:
    ```json
    {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "description": "Custom UI translation overlay. Set language code (e.g. \"de\", \"fr\") and modify translations.",
      "language": "",
-     "resource": {
+     "translations": {
        "Settings": "Settings",
        "Enable feature": "Enable feature",
        ... (en.json の全内容)
      }
    }
    ```
-   ※ これにより、ユーザーや他言語翻訳者は `localize.json` を開いて `"language": "de"` などを指定し、右辺の文字列を書き換えるだけで直感的に翻訳できるようになります。
+   > [!IMPORTANT]
+   > `localize.json` はユーザーが Vault 内で編集したカスタム設定を保持するため、**GitHub Release（BRAT配布アセット）には含めません**。ユーザーの Vault 内でプラグインが初回起動した際に `initLocalizeJson` がローカルで自動生成します（BRAT更新による強制上書き・カスタマイズ消去を防止するため）。
 
 3. `src/i18n.ts` に `initLocalizeJson` が含まれていることを確認し、プラグインのエントリーポイント（`main.ts` 等）の `onload()` 先頭で呼び出す:
 

@@ -82,11 +82,13 @@ export async function initLocalizeJson(app: App, manifest: PluginManifest): Prom
         const pluginDir = manifest.dir ?? `${app.vault.configDir}/plugins/${manifest.id}`;
         const localizePath = `${pluginDir}/localize.json`;
 
-        // 🌟 フェールセーフ: ファイルが存在しない場合、内蔵英語リソースから初期テンプレートを自動生成
+        // 🌟 自動生成: ファイルが存在しない場合、内蔵英語リソースから初期テンプレートを自動生成
         if (!await app.vault.adapter.exists(localizePath)) {
-            const initialTemplate: LocalizeConfig = {
+            const initialTemplate = {
+                $schema: "https://json-schema.org/draft/2020-12/schema",
+                description: "Custom UI translation overlay. Set language code (e.g. \"de\", \"fr\") and modify translations.",
                 language: "",
-                resource: builtinTranslations.en || {},
+                translations: builtinTranslations.en || {},
             };
             await app.vault.adapter.write(localizePath, JSON.stringify(initialTemplate, null, 2) + "\n");
             return;
