@@ -81,24 +81,20 @@ jobs:
             echo "Error: No build script found in package.json" && exit 1
           fi
 
-      # 配布用 localize.json の生成（en.json の最新キーを含める）
+      # 配布用 localize.json の生成（language は空文字で初期化し、内蔵日本語リソースを上書きしないようにする）
       - name: Prepare localize.json asset
         run: |
           if [ -f "src/locales/en.json" ]; then
             node -e "
               const fs = require('fs');
               const en = JSON.parse(fs.readFileSync('src/locales/en.json', 'utf8'));
-              let targetLang = '';
-              let existingRes = {};
-              if (fs.existsSync('localize.json')) {
-                try {
-                  const current = JSON.parse(fs.readFileSync('localize.json', 'utf8'));
-                  targetLang = current.language || '';
-                  existingRes = current.resource || {};
-                } catch {}
-              }
-              const mergedResource = { ...en, ...existingRes };
-              fs.writeFileSync('localize.json', JSON.stringify({ language: targetLang, resource: mergedResource }, null, 2) + '\n');
+              const template = {
+                '\$schema': 'https://json-schema.org/draft/2020-12/schema',
+                description: 'Custom UI translation overlay. Set language code (e.g. \"de\", \"fr\") and modify translations.',
+                language: '',
+                translations: en
+              };
+              fs.writeFileSync('localize.json', JSON.stringify(template, null, 2) + '\n');
             "
           fi
 
