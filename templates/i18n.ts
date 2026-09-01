@@ -152,4 +152,45 @@ export function t(key: string, params?: Record<string, string | number>, forcedL
     return interpolate(key, params);
 }
 
+/**
+ * DOM-aware translation helper that safely interpolates HTMLElement, DocumentFragment, and strings.
+ * Solves the sentence fragmentation / word order issue for rich text descriptions.
+ *
+ * Example:
+ * const desc = tDom("Allows you to use the {link} with folder notes.", {
+ *     link: createEl("a", { text: "Front Matter Title", href: "..." })
+ * });
+ * setting.setDesc(desc);
+ */
+export function tDom(
+    key: string,
+    nodes?: Record<string, Node | string | number>,
+    forcedLocale?: string
+): DocumentFragment {
+    const text = t(key, undefined, forcedLocale);
+    const fragment = document.createDocumentFragment();
+
+    if (!nodes) {
+        fragment.append(document.createTextNode(text));
+        return fragment;
+    }
+
+    const parts = text.split(/(\{[\w-]+\})/g);
+    for (const part of parts) {
+        const match = part.match(/^\{([\w-]+)\}$/);
+        if (match && Object.prototype.hasOwnProperty.call(nodes, match[1])) {
+            const node = nodes[match[1]];
+            if (node instanceof Node) {
+                fragment.append(node);
+            } else if (node !== undefined && node !== null) {
+                fragment.append(document.createTextNode(String(node)));
+            }
+        } else if (part.length > 0) {
+            fragment.append(document.createTextNode(part));
+        }
+    }
+    return fragment;
+}
+
 export default t;
+

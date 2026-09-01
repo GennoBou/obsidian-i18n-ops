@@ -73,6 +73,7 @@ upstream/master (オリジナル)
 破壊的な変更や不適切なファイル配置を防ぐため、コード改変を開始する前に以下の3つの前提条件を自動検証します。**いずれかのチェックに抵触した場合は、処理を即座に中断（Abort）してください。**
 
 ### ① Obsidian プラグイン適合性チェック（Fail-Fast）
+
 リポジトリ直下に有効な `manifest.json` が存在し、Obsidianプラグインの必須フィールドが含まれているかを検証します。
 
 ```bash
@@ -95,12 +96,14 @@ try {
 }
 "
 ```
+
 > [!CAUTION]
 > このチェックでエラーが出た場合は、**ブランチ作成やファイルコピーを一切行わず、ユーザーに「Obsidianプラグインではないため処理を中止しました」と報告して終了**してください。
 
 ---
 
 ### ② 既存多言語化（i18n）対応状況チェック
+
 すでに多言語化が組み込まれていないかを検証します。
 
 - 以下のファイルやディレクトリが存在するか確認:
@@ -112,12 +115,14 @@ try {
 ---
 
 ### ③ ベースラインビルド検証（Clean Slate Check）
+
 upstream（本家）のコードが正常にビルドできるクリーンな状態かを確認します。
 
 ```bash
 npm install # または pnpm install / yarn
 npm run build
 ```
+
 - **判定**: upstream 自体がビルドエラーになる場合、多言語化作業に起因しない問題であるため、ユーザーにエラーを報告して対応方針を確認します。
 
 ---
@@ -147,6 +152,7 @@ npm run build
      - 半角60文字超の長文説明文や改行を含む文章、クォート等のエスケープが複雑な文章は、改行・エスケープ不一致事故を防ぐため `[先頭24文字スラッグ]...#[SHA256先頭6桁]` の固定ID（例: `t("Available placeholders...#5e47b9")`）を生成してキー化する。
      - 短いUI（ボタン名、コマンド名、設定名）はそのまま原文キーを使用する。
      - **キー生成ロジック（標準関数 `toKey`）**:
+
        ```javascript
        import crypto from "crypto";
 
@@ -162,6 +168,21 @@ npm run build
            return `${slug}...#${hash}`;
        }
        ```
+
+   - **⚠️ テキスト抽出時の i18n アンチパターン防止規定（必須遵守）**:
+     コード内の文字列を抽出する際は、言語ごとの語順・文法構造の違いを破壊する以下のアンチパターンを厳禁とします。
+     1. **DOM要素 / リンクを含む文章の断片化禁止（Fragmented DOM Construction）**:
+        - ❌ `desc.append(t('Prefix '), link, t(' Suffix'))` のように文を物理的に分断してはならない（日本語やドイツ語などで語順が固定され破綻するため）。
+        - ⭕ `templates/i18n.ts` の `tDom` を使用し、`tDom('Prefix {link} Suffix', { link })` のように **1つの完全な文章としてプレースホルダー化** すること。
+     2. **文字列結合（`+`）による文章構築の禁止（String Concatenation）**:
+        - ❌ `t("Found ") + count + t(" notes in ") + folder`
+        - ⭕ `t("Found {count} notes in {folder}", { count, folder })`
+     3. **前置詞・助詞の孤立キー化の禁止（Orphaned Prepositions）**:
+        - ❌ `t("in")`, `t("for")`, `t("with")`, `t("by")` 等を単独でキー化してはならない（文脈によって訳語が劇的に変化するため）。文脈全体を含めてキー化すること。
+     4. **文中の一部分だけの `t()` 化の禁止（Partial Wrapping）**:
+        - ❌ `folderName + t(" overview")`
+        - ⭕ `t("{name} overview", { name: folderName })`
+
 6. **未ラップUI文字列の静的スキャン（漏れゼロ検証）**:
    - `src/` 配下の全ファイルに対し、`.setName()`, `.setDesc()`, `addOptions()`, `new Notice()`, `aria-label` 等に生の文字列リテラル（`t()` で囲まれていない文字列）が残っていないか、静的スキャン（正規表現やAST）を実行し、未ラップ箇所が 0 件であることを検証する。
    - ※ 改行を含む複数行の `setDesc`、テンプレートリテラル（`` `...` ``）、ドロップダウンの選択肢オブジェクト（例: `{ hide: "Hide" }`）、文字列連結（`+`）、動的変数（三項演算子等）も漏れなく `t()` 化されていることを確認する。
@@ -216,6 +237,7 @@ npm run build
    ```
 
    生成される `localize.json` の構造:
+
    ```json
    {
      "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -228,6 +250,7 @@ npm run build
      }
    }
    ```
+
    > [!IMPORTANT]
    > `localize.json` はユーザーが Vault 内で編集したカスタム設定を保持するため、**GitHub Release（BRAT配布アセット）には含めません**。ユーザーの Vault 内でプラグインが初回起動した際に `initLocalizeJson` がローカルで自動生成します（BRAT更新による強制上書き・カスタマイズ消去を防止するため）。
 
@@ -279,7 +302,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    > [!NOTE]
    > **About this i18n Fork / 多言語版について**
    >
-   > This repository is a fork of the [original plugin](<UPSTREAM_URL>) that introduces internationalization (i18n) support and Japanese localization resources.
+   > This repository is a fork of [The original plugin](<UPSTREAM_URL>) that introduces internationalization (i18n) support and Japanese localization resources.
    > It is intended for personal and community use. To install this plugin in Obsidian, please use the **[Obsidian42 - BRAT](https://github.com/TfTHacker/obsidian42-brat)** plugin.
    > Once the upstream plugin officially supports internationalization and Japanese locales, this repository will be archived.
    >
@@ -295,7 +318,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    >
    > ---
    >
-   > 本リポジトリは、[オリジナルプラグイン](<UPSTREAM_URL>) を多言語化 (i18n) し、日本語リソースを追加したフォーク版です。
+   > 本リポジトリは、[オリジナルのプラグイン](<UPSTREAM_URL>) を多言語化 (i18n) し、日本語リソースを追加したフォーク版です。
    > 個人利用・コミュニティ提供を目的としており、Obsidianへのインストールは **[Obsidian42 - BRAT](https://github.com/TfTHacker/obsidian42-brat)** プラグイン経由で行ってください。
    > 本家が多言語対応と日本語ロケールを公式実装したとき、本リポジトリの役目は終えアーカイブされます。
    >
@@ -374,6 +397,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    # PowerShell の場合:
    pwsh <OPS_REPO_PATH>/scripts/setup-repo-security.ps1
    ```
+
    ```bash
    # Bash の場合:
    <OPS_REPO_PATH>/scripts/setup-repo-security.sh
