@@ -140,16 +140,33 @@ npm run build
    "check-i18n": "node scripts/check-i18n.mjs"
    ```
 
-5. プラグインの全ソースコードをスキャンし、ハードコードされたUI文字列を `t("English String")` に置換。
+5. プラグインの全ソースコードをスキャンし、ハードコードされたUI文字列を `t(...)` に置換。
    - **対象**: 設定画面 (`setName`, `setDesc`, `addOptions` の選択肢等)、コマンド名、モーダル、Notice通知、ツールチップ、aria-label
    - **除外**: 内部ID、設定キー名、CSSクラス、URL、正規表現、ログメッセージ
    - **長文文字列のキー化規則（スラッグ#ハッシュID方式）**:
      - 半角60文字超の長文説明文や改行を含む文章、クォート等のエスケープが複雑な文章は、改行・エスケープ不一致事故を防ぐため `[先頭24文字スラッグ]...#[SHA256先頭6桁]` の固定ID（例: `t("Available placeholders...#5e47b9")`）を生成してキー化する。
      - 短いUI（ボタン名、コマンド名、設定名）はそのまま原文キーを使用する。
+     - **キー生成ロジック（標準関数 `toKey`）**:
+       ```javascript
+       import crypto from "crypto";
+
+       function toKey(originalText) {
+           const normalized = originalText.replace(/\s+/g, " ").trim();
+           // 60文字以下で改行やエスケープのない短い文はそのまま原文キー
+           if (normalized.length <= 60 && !originalText.includes("\n") && !originalText.includes('"') && !originalText.includes("'")) {
+               return normalized;
+           }
+           // 長文・改行を含む文はスラッグ（英数字・ハイフンのみ24文字）＋SHA-256先頭6桁
+           const hash = crypto.createHash("sha256").update(normalized).digest("hex").slice(0, 6);
+           const slug = normalized.replace(/[^a-zA-Z0-9\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24).trim();
+           return `${slug}...#${hash}`;
+       }
+       ```
 6. **未ラップUI文字列の静的スキャン（漏れゼロ検証）**:
-   - `src/` 配下の全ファイルに対し、`.setName()`, `.setDesc()`, `addOptions()`, `new Notice()`, `aria-label` 等に生の文字列リテラル（`t()` で囲まれていない文字列）が残っていないか、スクリプトまたは正規表現等で静的スキャンを実行し、未ラップ箇所が 0 件であることを検証する。
-   - ※ 改行を含む複数行の `setDesc` やテンプレートリテラル、ドロップダウンの選択肢オブジェクト（例: `{ hide: "Hide" }`）、文字列連結（`+`）も漏れなく `t()` 化されていることを確認する。
-7. 原文キーをまとめた `src/locales/en.json` を生成（値には元の完全な英語全文を保持）。
+   - `src/` 配下の全ファイルに対し、`.setName()`, `.setDesc()`, `addOptions()`, `new Notice()`, `aria-label` 等に生の文字列リテラル（`t()` で囲まれていない文字列）が残っていないか、静的スキャン（正規表現やAST）を実行し、未ラップ箇所が 0 件であることを検証する。
+   - ※ 改行を含む複数行の `setDesc`、テンプレートリテラル（`` `...` ``）、ドロップダウンの選択肢オブジェクト（例: `{ hide: "Hide" }`）、文字列連結（`+`）、動的変数（三項演算子等）も漏れなく `t()` 化されていることを確認する。
+7. 原文キーをまとめた `src/locales/en.json` を生成。
+   - **重要**: スラッグ#ハッシュIDのキーに対する値（Value）には、プレースホルダーを含む**元の完全な英語全文**を格納すること（辞書チェッカーがプレースホルダー整合性を検証できるようにするため）。
 8. `npm run check-i18n` および `npm run build`（型チェック・ビルド）を実行して検証。
 9. コミットしてリモートにプッシュ:
 
