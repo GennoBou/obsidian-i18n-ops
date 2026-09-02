@@ -34,9 +34,10 @@
 | ④ プラグイン内部ロジック（マクロ、AIプロンプト等） | `test`（数千件の単体テスト） | **約4〜5分** | **除外 (ローカル/手動のみ)** |
 
 ### 本家の単体テスト（`test`）を日常CIから除外する理由
+
 - 本家の単体テストは、プラグイン本体の機能改修やリファクタリング時に開発者が通すためのものです。
 - UI文字列を `t("English")` に差し替えるだけの作業において、ロジック破壊が起こる可能性は型チェック（`tsc` / `svelte-check`）でほぼ100%検出されます。
-- 単体テストを日常CIに含めると、CI実行時間が5分以上に膨れ上がり、開発サイクルとActions無料枠を大幅に圧迫します。
+- 単体テストを日常CIに含めると、CI実行時間が5分以上に膨れ上がり、開発サイクルを圧迫します。
 - **結論**: 単体テストは **「ローカル開発時に必要な時のみ実行」** または **「`workflow_dispatch` で明示的に `run_tests: true` を指定した時のみ実行」** とします。
 
 ---
@@ -45,22 +46,37 @@
 
 フォーク元（upstream）に存在する各ワークフローは、以下の基準に従って分類・対応します。
 
-```
-                    【目的・役割】
-              多言語化・配布用  │  本家開発・公式配布用
-           ┌───────────────────┼───────────────────┐
-  upstream │ (使わない)        │ [無効化] Category 1│
-  既存ファイル│                   │ 本家専用・Secrets依存│
-           ├───────────────────┼───────────────────┤
-  新規作成 │ [新設] Category 3  │ (作らない)        │
-  独自ファイル│ i18n-ci / BRAT    │                   │
-           └───────────────────┴───────────────────┘
+```mermaid
+block-beta
+  columns 3
+  
+  space:1
+  cell5["【目的・役割】"]:2
+
+  space:1
+  header2["本家開発由来"]:1
+  header["多言語化用"]:1
+
+  row1["upstream<br>既存ファイル"]:1
+  cell2["[無効化] Category 1<br>本家専用・Secrets依存"]:1
+  cell1["(使わない)"]:1
+
+  row2["新規作成<br>独自ファイル"]:1
+  cell4["(作らない)"]:1
+  cell3["[新設] Category 3<br>i18n-ci / BRAT"]:1
+
+  style cell5 stroke:none;
+  style header stroke:none;
+  style header2 stroke:none;
+  style row1 stroke:none;
+  style row2 stroke:none;
+  
 ```
 
 | カテゴリ | 判定条件（ファイル内の特徴） | フォーク先での対応 | 理由・効果 |
 | :--- | :--- | :---: | :--- |
 | **Category 1: 本家固有・外部認証依存フロー** | ・`secrets.RELEASE_*` や GitHub App 連携を使用<br>・公式コミュニティ登録リポジトリへのPR作成<br>・ドキュメントサイト（Pages, Vercel等）デプロイ<br>・PRタイトル検証、Stale bot 等 | **`gh workflow disable` (無効化)** | フォーク先では権限やSecretsが存在せず失敗するため。コードを削除・改変せず無効化することでupstream同期時のコンフリクトを防止。 |
-| **Category 2: 過剰・重複テストフロー** | ・`strategy.matrix.os` で macOS / Windows を実行<br>・CodeQL 静的コード解析<br>・Dependency Review | **`gh workflow disable` (無効化)** | 多言語化差分においてOS固有の挙動破壊が起きる可能性は極めて低く、CIの無料枠消費と待ち時間を悪化させるため。 |
+| **Category 2: 過剰・重複テストフロー** | ・`strategy.matrix.os` で macOS / Windows を実行<br>・CodeQL 静的コード解析<br>・Dependency Review | **`gh workflow disable` (無効化)** | 多言語化差分においてOS固有の挙動破壊が起きる可能性は極めて低く、CIの待ち時間を悪化させるため。 |
 | **Category 3: 多言語化高速CI** | ・辞書整合性検証（`check-i18n`）<br>・型/構文チェック（`check` / `lint`）<br>・プラグインビルド（`build`） | **`templates/i18n-ci.yml` を新設** | 本家のCIファイルを壊さず、`ubuntu-latest` 単一環境でキャッシュを活用して **30秒〜45秒** で高速完結させる。 |
 | **Category 4: BRAT配布リリース** | ・日付タグ（CalVer: `YY.M.D` / 同日2回目以降は `YY.M.D.N`）によるアタッチメント付きGitHub Release発行 | **`templates/brat-release.yml` を新設** | 本家のSemVerリリースとは独立して、BRAT（`manifest.json`, `main.js`, `styles.css`）用配布を **40秒前後** で完結させる。 |
 
@@ -71,11 +87,14 @@
 CIワークフローを設計・再検討・更新する際は、必ず以下の**「時間測定・過剰動作チェック」**を実施してください。
 
 ### ① 目標基準時間
+
 - **`i18n CI`（プッシュ / PR時）**: **1分以内（目標: 30〜45秒）**
 - **`Release for BRAT`（タグプッシュ時）**: **1分以内（目標: 40〜50秒）**
 
 ### ② ボトルネック特定と削減チェックリスト
+
 もし実行時間が1分を大幅に超過している場合、以下の原因を調査して過剰動作を排除します：
+
 1. **重い単体テスト（`pnpm test` 等）が走っていないか？** ➔ `run_tests == true` のオプショナル条件に移動。
 2. **OSマトリクス（macOS / Windows）が有効になっていないか？** ➔ `ubuntu-latest` 単一環境に統一。
 3. **パッケージマネージャーのキャッシュが効いているか？** ➔ `actions/setup-node` の `cache` オプションを確認。
@@ -89,7 +108,7 @@ CIワークフローを設計・再検討・更新する際は、必ず以下の
 
 ```mermaid
 flowchart TD
-    Start[フォーク初期化] --> Scan[既存の .github/workflows/*.yml をスキャン]
+    Start[本家のフォーク] --> Scan[既存の .github/workflows/*.yml をスキャン]
     Scan --> Check1{本家固有のSecrets / GitHub App / 公式リリース用か？}
     Check1 -- Yes --> Dis1[gh workflow disable で無効化]
     Check1 -- No --> Check2{OSマトリクス macOS/Windows や CodeQL などの重厚CIか？}
@@ -121,6 +140,7 @@ flowchart TD
 ## 6. BRAT配布における仕様と注意点
 
 ### ① `manifest.json` のバージョン同期 & CalVer 命名規則
+
 - BRATはリポジトリの最新リリースに添付された `manifest.json` の `version` 文字列とローカルのバージョンを比較してアップデートを判定します。
 - そのため、リリースを発行する際は **`manifest.json` の `version` と Git タグ名が完全に一致していること** が必須です。
 - **バージョニング規則（CalVer）**:
@@ -129,22 +149,27 @@ flowchart TD
   - **ハイフン禁止の理由**: `26.8.26-1` のようなハイフン形式は、SemVer 2.0.0 仕様により「プレリリース（正式版より古い）」と判定され、BRATによるアップデート検知が機能しなくなります。必ずピリオド式（`.1`, `.2`）でリビジョン番号を付与してください。
 
 ### ② `styles.css` の有無への汎用耐性
+
 - プラグインによってはCSSファイルが存在しない（JS単体）場合があります。
 - `templates/brat-release.yml` では `fail_on_unmatched_files: false` を指定しているため、`styles.css` が存在しないプラグインでもエラーにならず正常にリリースが作成されます。
 
 ### ③ GitHub Actions の権限（Workflow Permissions）
+
 - フォークリポジトリでは `GITHUB_TOKEN` の権限がデフォルトで制限されている場合があります。
 - リポジトリの **Settings ➔ Actions ➔ General ➔ Workflow permissions** で **「Read and write permissions」** を有効にする必要があります。
 - CLI コマンド:
+
   ```bash
   gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -f default_workflow_permissions=write
   ```
 
 ### ④ master ブランチ保護ルールセット（Ruleset）の自動設定
+
 - 翻訳フォークでは、以下の目的のために `master` ブランチ保護を行います:
   - **誤削除防止 (`deletion`)** & **誤った Force push 防止 (`non_fast_forward`)**
   - **GitHub Actions (`upstream-sync.yml`) および管理者による自動 push のバイパス許可 (`bypass_actors`)**
 - `scripts/setup-repo-security.ps1`（または `.sh`）を実行することで、Workflow 権限と Ruleset の両方を一括で自動適用できます:
+
   ```powershell
   pwsh scripts/setup-repo-security.ps1 -Repo "<owner>/<repo>"
   ```

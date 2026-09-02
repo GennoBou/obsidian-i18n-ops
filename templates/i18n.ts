@@ -122,30 +122,43 @@ function interpolate(template: string, params?: Record<string, string | number>)
 /**
  * Translate a message by original English text
  * Fallback chain: Custom Locale -> Built-in Locale -> Built-in 'en' -> Raw Key
+ * (Includes automatic whitespace normalization fallback to absorb newline differences)
  */
 export function t(key: string, params?: Record<string, string | number>, forcedLocale?: string): string {
     const locale = (forcedLocale || getObsidianLocale()).toLowerCase();
     const shortLocale = locale.split("-")[0];
+    const normKey = key.includes("\n") || key.includes("\r") || key.includes("  ") ? key.replace(/\s+/g, " ").trim() : undefined;
+
+    // Helper for multi-level lookup
+    const lookup = (dictMap: Record<string, TranslationDict> | undefined): string | undefined => {
+        if (!dictMap) return undefined;
+        const target = dictMap[locale] || dictMap[shortLocale];
+        if (!target) return undefined;
+        if (target[key] !== undefined) return target[key];
+        if (normKey && target[normKey] !== undefined) return target[normKey];
+        return undefined;
+    };
 
     // 1. Look in custom translations
-    if (customTranslations[locale]?.[key]) {
-        return interpolate(customTranslations[locale][key], params);
-    }
-    if (customTranslations[shortLocale]?.[key]) {
-        return interpolate(customTranslations[shortLocale][key], params);
+    const customResult = lookup(customTranslations);
+    if (customResult !== undefined) {
+        return interpolate(customResult, params);
     }
 
     // 2. Look in built-in translations
-    if (builtinTranslations[locale]?.[key]) {
-        return interpolate(builtinTranslations[locale][key], params);
-    }
-    if (builtinTranslations[shortLocale]?.[key]) {
-        return interpolate(builtinTranslations[shortLocale][key], params);
+    const builtinResult = lookup(builtinTranslations);
+    if (builtinResult !== undefined) {
+        return interpolate(builtinResult, params);
     }
 
     // 3. Fallback to built-in 'en' dictionary
-    if (builtinTranslations.en?.[key]) {
-        return interpolate(builtinTranslations.en[key], params);
+    if (builtinTranslations.en) {
+        if (builtinTranslations.en[key] !== undefined) {
+            return interpolate(builtinTranslations.en[key], params);
+        }
+        if (normKey && builtinTranslations.en[normKey] !== undefined) {
+            return interpolate(builtinTranslations.en[normKey], params);
+        }
     }
 
     // 4. Return raw key with interpolation

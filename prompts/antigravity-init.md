@@ -148,26 +148,28 @@ npm run build
 5. プラグインの全ソースコードをスキャンし、ハードコードされたUI文字列を `t(...)` に置換。
    - **対象**: 設定画面 (`setName`, `setDesc`, `addOptions` の選択肢等)、コマンド名、モーダル、Notice通知、ツールチップ、aria-label
    - **除外**: 内部ID、設定キー名、CSSクラス、URL、正規表現、ログメッセージ
-   - **長文文字列のキー化規則（スラッグ#ハッシュID方式）**:
-     - 半角60文字超の長文説明文や改行を含む文章、クォート等のエスケープが複雑な文章は、改行・エスケープ不一致事故を防ぐため `[先頭24文字スラッグ]...#[SHA256先頭6桁]` の固定ID（例: `t("Available placeholders...#5e47b9")`）を生成してキー化する。
-     - 短いUI（ボタン名、コマンド名、設定名）はそのまま原文キーを使用する。
-     - **キー生成ロジック（標準関数 `toKey`）**:
+   - **翻訳キーの設計方針（Raw Key 原則 ＆ 複雑な長文のハッシュID化）**:
+     - **基本原則（デフォルト）: 完全原文（Raw Key）方式**
+       - 通常のUI文言、ボタン名、コマンド名、および標準的な説明文（単一文字列で300文字程度まで）は、ソースコードの可読性・Upstream同期性・`localize.json` の直感性を最優先し、**英語原文のまま `t("English String")` とする**。
+       - `templates/i18n.ts` の `t()` には空白・改行の自動正規化フォールバックが組み込まれているため、通常の改行コードの差分は自動吸収されます。
+     - **推奨ケース: スラッグ#ハッシュID方式（オプトイン）**
+       - 文字列連結（`"A" + "B"`）や複数行の複雑な改行、エスケープ（`\"`）が入り乱れており、Raw Key ではキー不一致やシンタックスエラーが起きやすい複雑な長文ブロックに限り、`[先頭24文字スラッグ]...#[SHA256先頭6桁]` の固定ID（例: `t("Available placeholders...#5e47b9")`）を採用する。
+       - **キー生成ロジック（標準関数 `toKey`）**:
+         ```javascript
+         import crypto from "crypto";
 
-       ```javascript
-       import crypto from "crypto";
-
-       function toKey(originalText) {
-           const normalized = originalText.replace(/\s+/g, " ").trim();
-           // 60文字以下で改行やエスケープのない短い文はそのまま原文キー
-           if (normalized.length <= 60 && !originalText.includes("\n") && !originalText.includes('"') && !originalText.includes("'")) {
-               return normalized;
-           }
-           // 長文・改行を含む文はスラッグ（英数字・ハイフンのみ24文字）＋SHA-256先頭6桁
-           const hash = crypto.createHash("sha256").update(normalized).digest("hex").slice(0, 6);
-           const slug = normalized.replace(/[^a-zA-Z0-9\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24).trim();
-           return `${slug}...#${hash}`;
-       }
-       ```
+         function toKey(originalText) {
+             const normalized = originalText.replace(/\s+/g, " ").trim();
+             // 60文字以下で改行やエスケープのない短い文はそのまま原文キー
+             if (normalized.length <= 60 && !originalText.includes("\n") && !originalText.includes('"') && !originalText.includes("'")) {
+                 return normalized;
+             }
+             // 複雑な長文・改行を含む文はスラッグ（英数字・ハイフンのみ24文字）＋SHA-256先頭6桁
+             const hash = crypto.createHash("sha256").update(normalized).digest("hex").slice(0, 6);
+             const slug = normalized.replace(/[^a-zA-Z0-9\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24).trim();
+             return `${slug}...#${hash}`;
+         }
+         ```
 
    - **⚠️ テキスト抽出時の i18n アンチパターン防止規定（必須遵守）**:
      コード内の文字列を抽出する際は、言語ごとの語順・文法構造の違いを破壊する以下のアンチパターンを厳禁とします。
@@ -346,7 +348,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
         - 対応: コードを削除せず `gh workflow disable <名前>` で無効化（upstream更新時のコンフリクトを原理的に防止）。
      2. **Category 2: 過剰・重複テストフロー（無効化）**:
         - OSマトリクス（macOS / Windows）、CodeQL、重複するフルテスト
-        - 対応: CI待ち時間と無料枠消費を削減するため `gh workflow disable <名前>` で無効化。
+        - 対応: CI待ち時間を削減するため `gh workflow disable <名前>` で無効化。
      3. **Category 3: 多言語化高速CI（新設・運用）**:
         - `.github/workflows/i18n-ci.yml` で Ubuntu 単一環境にて `check-i18n` + `check` / `lint` + `build` を **30秒〜45秒** で実行（過剰な単体テストは除外）。
      4. **Category 4: BRAT配布リリース（新設・運用）**:
