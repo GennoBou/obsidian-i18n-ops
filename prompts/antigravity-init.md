@@ -55,13 +55,23 @@ upstream/master (オリジナル)
    cd <PLUGIN_ID>-i18n
    ```
 
-2. upstream リモートが設定されていることを確認します。
+2. **フォーク先リポジトリの Description（説明文）設定**:
+   - Upstream の Description 原文を改変せず、末尾に ` - with i18n support (+ Japanese)` を付加して設定します。
+   - 多言語化基盤（i18n）を主体とし、初期同梱言語として日本語（+ Japanese）が含まれていることを明確にします。
+
+   ```bash
+   # Upstream の Description を取得して末尾にサフィックスを付与して設定
+   UPSTREAM_DESC=$(gh repo view <UPSTREAM_URL> --json description -q .description)
+   gh repo edit --description "${UPSTREAM_DESC} - with i18n support (+ Japanese)"
+   ```
+
+3. upstream リモートが設定されていることを確認します。
 
    ```bash
    git remote -v
    ```
 
-3. **Serena MCP のアクティベート**:
+4. **Serena MCP のアクティベート**:
    - 作業対象プロジェクトを Serena MCP に登録・アクティベートします。
    - `serena:activate_project`（引数 `project: "<クローンした絶対パス>"`）を呼び出します。
    - TypeScript 言語サーバー（LSP）とセマンティック探索機能を有効化し、巨大ファイルでの安全なリファクタリング・リアルタイム構文検証（`get_diagnostics_for_file`）環境を整えます。
@@ -318,6 +328,7 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    > - Set your target language code in `"language"` (e.g. `"en"`, `"ja"`, `"de"`), modify `"resource"`, and reload Obsidian.
    > - Deleting `localize.json` and reloading Obsidian will reset it to the default template.
    >
+   >
    > ---
    >
    > 本リポジトリは、[オリジナルのプラグイン](<UPSTREAM_URL>) を多言語化 (i18n) し、日本語リソースを追加したフォーク版です。
@@ -333,9 +344,11 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    > - プラグインフォルダ内の `localize.json` を編集することで、独自翻訳の追加や上書きが可能です。
    > - `"language"` に使用したい言語コード（例: 英語=`"en"`, 日本語=`"ja"`, ドイツ語=`"de"` 等）を入力し、`"resource"` 以下を書き換えてアプリを再起動すると反映されます。
    > - `localize.json` を削除してアプリを再起動すると、初期状態に自動復元されます。
-   
-   ---
    ```
+
+   > [!CAUTION]
+   > **README.md の独自要約・省略は厳禁（再発防止）**
+   > - `README.md` 冒頭には、上記テンプレート（英語パート＋日本語パート）を**一切要約・省略せず丸ごとコピー**し、`<...>` のプレースホルダーのみを置換すること（日本語のみの独自要約・短縮は禁止）。
 
 5. **CIワークフローの配置 & upstream ワークフローの汎用4象限分類・無効化**:
    - `templates/upstream-sync.yml` を `.github/workflows/upstream-sync.yml` に配置。
