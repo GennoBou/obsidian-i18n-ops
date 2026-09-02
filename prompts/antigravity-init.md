@@ -302,9 +302,10 @@ Obsidianでオリジナルプラグインと衝突せず共存・利用できる
    git merge feat-localize
    ```
 
-2. **`manifest.json` の改名（衝突防止）**:
+2. **`manifest.json` のメタデータ更新（衝突防止・識別）**:
    - `id`: `"<original-id>-i18n"` に変更（例: `"quickadd-i18n"`）
    - `name`: `"<Original Name> (i18n)"` に変更（例: `"QuickAdd (i18n)"`）
+   - `description`: `"<Original Description> (Multilingual Support)"` に変更（Obsidian内設定画面のプラグイン一覧用。アプリ内表記のため特定言語名ではなく多言語対応を簡潔に明記）
    - `version`: 当日の日付バージョン `YY.M.D`（例: `"26.8.26"`。同日2回目以降は `YY.M.D.N` 形式 例: `"26.8.26.1"`）
 3. **`package.json` の `version` 更新**:
    - `version` を当日日付形式 `YY.M.D`（例: `"26.8.26"` / 同日2回目以降は `"26.8.26.1"`）に更新。

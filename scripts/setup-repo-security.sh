@@ -86,9 +86,33 @@ else
 fi
 
 echo ""
+echo "[3/3] リポジトリ Description（説明文）の確認・更新中..."
+REPO_JSON=$(gh api "repos/$REPO" 2>/dev/null || true)
+if [ -n "$REPO_JSON" ]; then
+    CURRENT_DESC=$(echo "$REPO_JSON" | jq -r '.description // ""')
+    PARENT_DESC=$(echo "$REPO_JSON" | jq -r '.parent.description // ""')
+    I18N_SUFFIX=" - with i18n support (+ Japanese)"
+
+    if [ -n "$PARENT_DESC" ] && [ "$PARENT_DESC" != "null" ]; then
+        EXPECTED_DESC="${PARENT_DESC}${I18N_SUFFIX}"
+        if [ "$CURRENT_DESC" != "$EXPECTED_DESC" ]; then
+            gh repo edit "$REPO" --description "$EXPECTED_DESC"
+            echo "✓ リポジトリ Description を更新しました: $EXPECTED_DESC"
+        else
+            echo "✓ リポジトリ Description は既に最新です。"
+        fi
+    elif [ -n "$CURRENT_DESC" ] && [[ "$CURRENT_DESC" != *"$I18N_SUFFIX" ]]; then
+        NEW_DESC="${CURRENT_DESC}${I18N_SUFFIX}"
+        gh repo edit "$REPO" --description "$NEW_DESC"
+        echo "✓ リポジトリ Description を更新しました: $NEW_DESC"
+    fi
+fi
+
+echo ""
 echo "=========================================="
 echo "設定が完了しました。"
 echo "・ブランチの誤削除防止: 有効"
 echo "・Force push (強制上書き) 防止: 有効"
 echo "・GitHub Actions による自動 push (upstream-sync): 許可 (バイパス)"
+echo "・リポジトリ Description (i18n 規約): 適用済み"
 echo "=========================================="

@@ -122,9 +122,40 @@ catch {
     Write-Warning "ルールセットの設定に失敗しました: $_"
 }
 
+# 4. リポジトリ Description（説明文）の設定・更新
+Write-Host "`n[3/3] リポジトリ Description（説明文）の確認・更新中..." -ForegroundColor Cyan
+try {
+    $repoInfo = gh api "repos/$Repo" | ConvertFrom-Json
+    $currentDesc = $repoInfo.description
+    $i18nSuffix = " - with i18n support (+ Japanese)"
+
+    if ($repoInfo.parent) {
+        $parentDesc = $repoInfo.parent.description
+        if ($parentDesc) {
+            $expectedDesc = "$parentDesc$i18nSuffix"
+            if ($currentDesc -ne $expectedDesc) {
+                gh repo edit $Repo --description $expectedDesc
+                Write-Host "✓ リポジトリ Description を更新しました: $expectedDesc" -ForegroundColor Green
+            }
+            else {
+                Write-Host "✓ リポジトリ Description は既に最新です。" -ForegroundColor Green
+            }
+        }
+    }
+    elseif ($currentDesc -and -not $currentDesc.EndsWith($i18nSuffix)) {
+        $newDesc = "$currentDesc$i18nSuffix"
+        gh repo edit $Repo --description $newDesc
+        Write-Host "✓ リポジトリ Description を更新しました: $newDesc" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Warning "リポジトリ Description の設定に失敗しました: $_"
+}
+
 Write-Host "`n==========================================" -ForegroundColor Cyan
 Write-Host "設定が完了しました。" -ForegroundColor Green
 Write-Host "・ブランチの誤削除防止: 有効"
 Write-Host "・Force push (強制上書き) 防止: 有効"
 Write-Host "・GitHub Actions による自動 push (upstream-sync): 許可 (バイパス)"
+Write-Host "・リポジトリ Description (i18n 規約): 適用済み"
 Write-Host "==========================================" -ForegroundColor Cyan
