@@ -1,6 +1,6 @@
 # obsidian-i18n-ops
 
-英語のみに対応しているObsidianプラグインを多言語化（+日本語追加）し、GitHub Actions + Google Jules / Antigravity によって継続的・自動的にアップデートするための基盤リポジトリです。
+英語のみに対応しているObsidianプラグインを多言語化（+日本語追加）し、GitHub Actions（自動検知）+ Antigravity（Issue駆動解決）によって継続的・半自動的にアップデートするための基盤リポジトリです。
 
 ---
 
@@ -83,7 +83,7 @@ obsidian-i18n-ops/
 │   └── check-i18n.mjs              # 辞書・プレースホルダー検証スクリプト
 ├── prompts/                        # AI指示書
 │   ├── antigravity-init.md         # 初回全コードi18n化用指示書（Antigravity用）
-│   └── jules-sync.md               # 日々の差分同期用指示書（Google Jules用）
+│   └── antigravity-sync.md         # 日々の差分同期・コンフリクト解消・翻訳指示書（Antigravity用）
 └── docs/                           # 設計書および運用指針
     ├── ci-workflow-guidelines.md   # CIワークフロー設計・判定指針
     └── todo.md                     # 検討・検証課題
