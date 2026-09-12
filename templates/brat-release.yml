@@ -23,23 +23,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       # パッケージマネージャーの自動セットアップ
       - name: Setup pnpm
         if: hashFiles('pnpm-lock.yaml') != ''
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Bun
         if: hashFiles('bun.lockb', 'bun.lock') != ''
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: ${{ hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || (hashFiles('package-lock.json') != '' && 'npm' || (hashFiles('yarn.lock') != '' && 'yarn' || '')) }}
 
       # 依存関係のインストール
@@ -84,7 +84,7 @@ jobs:
       # BRAT配布用 GitHub Release 発行（styles.css は存在しないプラグインもあるため fail_on_unmatched_files: false）
       # ※ localize.json はユーザーがカスタマイズした設定を上書きしないよう、リリースアセットには含めず初回起動時にローカル自己生成させます
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           name: ${{ github.event.inputs.tag_name || github.ref_name }}
